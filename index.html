@@ -1,0 +1,20 @@
+<!doctype html>
+<!-- Shuichi Aizawa 2018 -->
+<html>
+<head>
+<title>rec</title>
+</head>
+<body>
+<audio id="player" controls></audio>
+</body>
+<script>
+navigator.mediaDevices.getUserMedia({audio:true,video:false})
+.then(function(stream) {
+	var player = document.getElementById("player");
+	player.srcObject = stream;
+})
+.catch(function(error) {
+	console.log(error);
+});
+</script>
+</html>
