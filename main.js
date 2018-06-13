@@ -3,18 +3,20 @@
 
 navigator.mediaDevices.getUserMedia({audio:true})
 .then(function(stream) {
-	var audioContext, rec=0, tracks=[];
+	var audioContext, gainNode, rec=0, tracks=[];
 
 	tracks[0] = {};
 	tracks[0].audio = document.getElementById("track0");
 	tracks[0].audio.onended = function() {
 		if (rec) {
 			if (mediaRecorder.state == "inactive") {
+				gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
 				mediaRecorder.start();
 				tracks[rec].button.style.background = "red";
 			}
 			else if (mediaRecorder.state == "recording") {
 				mediaRecorder.stop();
+				gainNode.gain.setValueAtTime(1, audioContext.currentTime);
 			}
 		}
 
@@ -27,9 +29,11 @@ navigator.mediaDevices.getUserMedia({audio:true})
 	tracks[0].button.onclick = function() {
 		if (!audioContext) {
 			audioContext = new (window.AudioContext || window.webkitAudioContext)();
+			gainNode = audioContext.createGain();
 			for (var i=4;i>=0;--i) {
 				var source = audioContext.createMediaElementSource(tracks[i].audio);
-				source.connect(audioContext.destination);
+				source.connect(gainNode);
+				gainNode.connect(audioContext.destination);
 				if (i) tracks[i].audio.play();  // don't play track 0 it will get played by code below
 			}
 		}
