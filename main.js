@@ -30,6 +30,7 @@ navigator.mediaDevices.getUserMedia({audio:true})
 			for (var i=4;i>=0;--i) {
 				var source = audioContext.createMediaElementSource(tracks[i].audio);
 				source.connect(audioContext.destination);
+				if (i) tracks[i].audio.play();  // don't play track 0 it will get played by code below
 			}
 		}
 
