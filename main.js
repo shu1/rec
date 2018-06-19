@@ -1,8 +1,8 @@
 // Shuichi Aizawa 2018
 "use strict";
 
-navigator.mediaDevices.getUserMedia({audio:true})
-.then(function(stream) {
+navigator.getUserMedia({audio:true},
+function(stream) {
 	var audioContext, gainNode, rec=0, tracks=[];
 
 	tracks[0] = {};
@@ -80,7 +80,7 @@ navigator.mediaDevices.getUserMedia({audio:true})
 		tracks[rec].button.style.background = "";
 		rec = 0;
 	}
-})
-.catch(function(e) {
+},
+function(e) {
 	console.log(e);
 });
