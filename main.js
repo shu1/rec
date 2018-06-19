@@ -25,7 +25,7 @@ function(stream) {
 			}
 			tracks[0].button.innerHTML = "pause";
 		}
-		else {
+		else if (recorder.state == "inactive") {
 			for (var i=4;i>=0;--i) {
 				if (tracks[i].audio.src) tracks[i].audio.pause();
 			}
