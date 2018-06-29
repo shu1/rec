@@ -3,7 +3,14 @@
 
 navigator.getUserMedia({audio:true},
 function(stream) {
-	var audioContext, gainNode, rec=0, tracks=[];
+	var audioContext, gainNode, recIndex=0, tracks=[];
+
+	var recorder = new MediaRecorder(stream);
+	recorder.ondataavailable = function(e) {
+		tracks[recIndex].audio.src = URL.createObjectURL(e.data);
+		tracks[recIndex].button.style.background = "";
+		recIndex = 0;
+	}
 
 	tracks[0] = {};
 	tracks[0].button = document.getElementById("button0");
@@ -12,6 +19,7 @@ function(stream) {
 			audioContext = new (window.AudioContext || window.webkitAudioContext)();
 			gainNode = audioContext.createGain();
 			gainNode.connect(audioContext.destination);
+
 			for (var i=4;i>=0;--i) {
 				var source = audioContext.createMediaElementSource(tracks[i].audio);
 				source.connect(gainNode);
@@ -35,11 +43,11 @@ function(stream) {
 
 	tracks[0].audio = document.getElementById("track0");
 	tracks[0].audio.onended = function() {
-		if (rec) {
+		if (recIndex) {
 			if (recorder.state == "inactive") {
 				gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
 				recorder.start();
-				tracks[rec].button.style.background = "red";
+				tracks[recIndex].button.style.background = "red";
 			}
 			else if (recorder.state == "recording") {
 				recorder.stop();
@@ -62,23 +70,16 @@ function(stream) {
 		tracks[index].button = document.getElementById("button"+index);
 		tracks[index].button.onclick = function() {
 			if (recorder.state == "inactive") {
-				if (rec) tracks[rec].button.style.background = "";
-				if (rec == index) {
-					rec = 0;
+				if (recIndex) tracks[recIndex].button.style.background = "";
+				if (recIndex == index) {
+					recIndex = 0;
 				}
 				else {
-					rec = index;
-					tracks[rec].button.style.background = "blue";
+					recIndex = index;
+					tracks[recIndex].button.style.background = "blue";
 				}
 			}
 		}
-	}
-
-	var recorder = new MediaRecorder(stream);
-	recorder.ondataavailable = function(e) {
-		tracks[rec].audio.src = URL.createObjectURL(e.data);
-		tracks[rec].button.style.background = "";
-		rec = 0;
 	}
 },
 function(e) {
