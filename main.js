@@ -3,13 +3,33 @@
 
 navigator.getUserMedia({audio:true},
 function(stream) {
-	var audioContext, gainNode, recIndex=0, tracks=[];
+	var audioContext, gainNode, recorder, reader, recIndex=0, tracks=[];
 
-	var recorder = new MediaRecorder(stream);
-	recorder.ondataavailable = function(e) {
-		tracks[recIndex].audio.src = URL.createObjectURL(e.data);
-		tracks[recIndex].button.style.background = "";
-		recIndex = 0;
+	if (window.MediaRecorder) {
+		recorder = new MediaRecorder(stream);
+		recorder.ondataavailable = function(e) {
+			reader.readAsArrayBuffer(e.data);
+		}
+
+		reader = new FileReader();
+		reader.onload = function() {
+			decode(reader.result);
+		}
+	}
+	else {
+		recorder = new Recorder({encoderPath:"waveWorker.min.js"});
+		recorder.ondataavailable = function(typedArray) {
+			decode(typedArray.buffer);
+		}
+	}
+
+	function decode(data) {
+		audioContext.decodeAudioData(data, function(buffer) {
+			tracks[recIndex].buffer = buffer;
+			playBuffer(recIndex);
+			tracks[recIndex].button.style.background = "";
+			recIndex = 0;
+		});
 	}
 
 	tracks[0] = {};
@@ -20,44 +40,46 @@ function(stream) {
 			gainNode = audioContext.createGain();
 			gainNode.connect(audioContext.destination);
 
-			for (var i=4;i>=0;--i) {
-				var source = audioContext.createMediaElementSource(tracks[i].audio);
-				source.connect(gainNode);
-				if (i) tracks[i].audio.play();  // don't play track 0 it will get played by code below
+			var request = new XMLHttpRequest();
+			request.open("get", "shubeat3." + (new Audio().canPlayType('audio/ogg')?"ogg":"wav"), true);
+			request.responseType = "arraybuffer";
+			request.onload = function() {
+				audioContext.decodeAudioData(request.response, function(buffer) {
+					tracks[0].buffer = buffer;
+					play();
+				});
 			}
-		}
-
-		if (tracks[0].audio.paused) {
-			for (var i=4;i>=0;--i) {
-				if (tracks[i].audio.src) tracks[i].audio.play();
-			}
-			tracks[0].button.innerHTML = "pause";
-		}
-		else if (recorder.state == "inactive") {
-			for (var i=4;i>=0;--i) {
-				if (tracks[i].audio.src) tracks[i].audio.pause();
-			}
-			tracks[0].button.innerHTML = "play";
+			request.send();
 		}
 	}
 
-	tracks[0].audio = document.getElementById("track0");
-	tracks[0].audio.onended = function() {
-		if (recIndex) {
-			if (recorder.state == "inactive") {
-				gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-				recorder.start();
-				tracks[recIndex].button.style.background = "red";
+	function play() {
+		playBuffer(0);
+		tracks[0].source.onended = function() {
+			if (recIndex) {
+				if (recorder.state == "inactive") {
+					gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+					recorder.start();
+					tracks[recIndex].button.style.background = "red";
+				}
+				else if (recorder.state == "recording") {
+					recorder.stop();
+					gainNode.gain.setValueAtTime(1, audioContext.currentTime);
+				}
 			}
-			else if (recorder.state == "recording") {
-				recorder.stop();
-				gainNode.gain.setValueAtTime(1, audioContext.currentTime);
-			}
-		}
 
-		for (var i=4;i>=0;--i) {
-			if (tracks[i].audio.src) tracks[i].audio.play();
+			for (var i=4;i>0;--i) {
+				if (tracks[i].buffer) playBuffer(i);
+			}
+			play();
 		}
+	}
+
+	function playBuffer(i) {
+		tracks[i].source = audioContext.createBufferSource();
+		tracks[i].source.buffer = tracks[i].buffer;
+		tracks[i].source.connect(gainNode);
+		tracks[i].source.start(0);
 	}
 
 	for (var i=1;i<=4;++i) {
@@ -66,7 +88,6 @@ function(stream) {
 
 	function initTrack(index) {
 		tracks[index] = {};
-		tracks[index].audio = document.getElementById("track"+index);
 		tracks[index].button = document.getElementById("button"+index);
 		tracks[index].button.onclick = function() {
 			if (recorder.state == "inactive") {
