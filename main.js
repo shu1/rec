@@ -10,8 +10,8 @@ navigator.mediaDevices.getUserMedia({audio:true})
 		recorder.ondataavailable = function(e) {
 			if (useAudio) {
 				tracks[recIndex].audio.src = URL.createObjectURL(e.data);
-				log(recIndex + " data lag ");
 				tracks[recIndex].audio.currentTime = audioContext.currentTime - time;
+				log(recIndex + " data lag ", tracks[recIndex].audio.currentTime);
 				tracks[recIndex].audio.play();
 				tracks[recIndex].button.style.background = "";
 				recIndex = 0;
@@ -38,7 +38,7 @@ navigator.mediaDevices.getUserMedia({audio:true})
 	function decode(data) {
 		audioContext.decodeAudioData(data, function(buffer) {
 			tracks[recIndex].buffer = buffer;
-			log(recIndex + " data lag ");
+			log(recIndex + " data lag ", audioContext.currentTime - time);
 			playBuffer(recIndex, time - audioContext.currentTime);
 			tracks[recIndex].button.style.background = "";
 			recIndex = 0;
@@ -46,7 +46,6 @@ navigator.mediaDevices.getUserMedia({audio:true})
 	}
 
 	tracks[0] = {};
-	tracks[0].when = 0;
 	tracks[0].button = document.getElementById("button0");
 	tracks[0].button.onclick = function() {
 		if (!audioContext) {
@@ -57,6 +56,7 @@ navigator.mediaDevices.getUserMedia({audio:true})
 			audioContext.decodeAudioData(request.response, function(buffer) {
 				tracks[0].buffer = buffer;
 				play();
+				tracks[0].button.innerHTML = "stop";
 			});
 
 			if (useAudio) {
@@ -65,6 +65,15 @@ navigator.mediaDevices.getUserMedia({audio:true})
 					source.connect(gainNode);
 				}
 			}
+		}
+		else if (tracks[0].button.innerHTML == "stop") {
+			tracks[0].button.style.background = "blue";
+			tracks[0].when = 1;
+		}
+		else if (tracks[0].buffer) {
+			time = audioContext.currentTime;
+			play();
+			tracks[0].button.innerHTML = "stop";
 		}
 	}
 
@@ -78,36 +87,42 @@ navigator.mediaDevices.getUserMedia({audio:true})
 	request.send();
 
 	function play() {
+		for (var i=1;i<=4;++i) {
+			if (tracks[i].buffer) {
+				playBuffer(i);
+			}
+			else if (tracks[i].audio && tracks[i].audio.src) {
+				tracks[i].audio.currentTime = audioContext.currentTime - time;
+				log(i + " play lag ", tracks[i].audio.currentTime);
+				tracks[i].audio.play();
+			}
+		}
+		tracks[0].when = 0;
 		playBuffer(0);
+
 		tracks[0].source.onended = function() {
-			time = audioContext.currentTime;
-			if (recIndex) {
-				if (recorder.state == "inactive") {
-					gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-					recorder.start();
-					log(recIndex + " reco lag ");
-					tracks[recIndex].when = audioContext.currentTime - time;
-					tracks[recIndex].button.style.background = "red";
-				}
-				else if (recorder.state == "recording") {
-					recorder.stop();
-					log(recIndex + " stop lag ");
-					gainNode.gain.setValueAtTime(1, audioContext.currentTime);
-				}
+			if (tracks[0].when) {
+				tracks[0].button.style.background = "";
+				tracks[0].button.innerHTML = "play";
 			}
-
-			for (var i=1;i<=4;++i) {
-				if (tracks[i].buffer) {
-					playBuffer(i);
+			else {
+				time = audioContext.currentTime;
+				if (recIndex) {
+					if (recorder.state == "inactive") {
+						gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+						recorder.start();
+						tracks[recIndex].when = audioContext.currentTime - time;
+						log(recIndex + " recb lag ", tracks[recIndex].when);
+						tracks[recIndex].button.style.background = "red";
+					}
+					else if (recorder.state == "recording") {
+						recorder.stop();
+						gainNode.gain.setValueAtTime(1, audioContext.currentTime);
+						log(recIndex + " rece lag ", audioContext.currentTime - time);
+					}
 				}
-				else if (tracks[i].audio && tracks[i].audio.src) {
-					log(i + " play lag ");
-					tracks[i].audio.currentTime = audioContext.currentTime - time;
-					tracks[i].audio.play();
-				}
+				play();
 			}
-
-			play();
 		}
 	}
 
@@ -115,7 +130,7 @@ navigator.mediaDevices.getUserMedia({audio:true})
 		tracks[i].source = audioContext.createBufferSource();
 		tracks[i].source.buffer = tracks[i].buffer;
 		tracks[i].source.connect(gainNode);
-		log(i + " play lag ");
+		log(i + " play lag ", audioContext.currentTime - time);
 		tracks[i].source.start(audioContext.currentTime + tracks[recIndex].when + t);
 	}
 
@@ -139,19 +154,17 @@ navigator.mediaDevices.getUserMedia({audio:true})
 				}
 			}
 		}
-
 		if (useAudio) tracks[index].audio = document.getElementById("track"+index);
 	}
 
 	var logged;
-	function log(e) {
-		var t = (audioContext.currentTime - time).toFixed(3);
-		if (time && t != 0) {
+	function log(e, t) {
+		if (t) {
 			if (logged) {
-				logDiv.innerHTML += "<br>" + e + t;
+				logDiv.innerHTML += "<br>" + e + t.toFixed(3);
 			}
 			else {
-				logDiv.innerHTML = e + t;
+				logDiv.innerHTML = e + t.toFixed(3);
 				logged = 1;
 			}
 		}
