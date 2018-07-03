@@ -10,8 +10,9 @@ navigator.mediaDevices.getUserMedia({audio:true})
 		recorder.ondataavailable = function(e) {
 			if (useAudio) {
 				tracks[recIndex].audio.src = URL.createObjectURL(e.data);
-				tracks[recIndex].audio.currentTime = audioContext.currentTime - time;
-				log(recIndex + " data lag ", tracks[recIndex].audio.currentTime);
+				tracks[recIndex].when += audioContext.currentTime - time;
+				tracks[recIndex].audio.currentTime = tracks[recIndex].when;
+				log(recIndex + " data lag ", tracks[recIndex].when);
 				tracks[recIndex].audio.play();
 				tracks[recIndex].button.style.background = "";
 				recIndex = 0;
@@ -87,18 +88,18 @@ navigator.mediaDevices.getUserMedia({audio:true})
 	request.send();
 
 	function play() {
+		tracks[0].when = 0;
+		playBuffer(0);
 		for (var i=1;i<=4;++i) {
 			if (tracks[i].buffer) {
 				playBuffer(i);
 			}
 			else if (tracks[i].audio && tracks[i].audio.src) {
-				tracks[i].audio.currentTime = audioContext.currentTime - time;
-				log(i + " play lag ", tracks[i].audio.currentTime);
+				tracks[i].audio.currentTime = audioContext.currentTime - time + tracks[i].when;
+				log(i + " play lag ", audioContext.currentTime - time);
 				tracks[i].audio.play();
 			}
 		}
-		tracks[0].when = 0;
-		playBuffer(0);
 
 		tracks[0].source.onended = function() {
 			if (tracks[0].when) {
@@ -118,7 +119,8 @@ navigator.mediaDevices.getUserMedia({audio:true})
 					else if (recorder.state == "recording") {
 						recorder.stop();
 						gainNode.gain.setValueAtTime(1, audioContext.currentTime);
-						log(recIndex + " rece lag ", audioContext.currentTime - time);
+						if (window.MediaRecorder) tracks[recIndex].when += audioContext.currentTime - time;
+						log(recIndex + " rece lag ", tracks[recIndex].when);
 					}
 				}
 				play();
