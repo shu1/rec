@@ -10,13 +10,27 @@ navigator.mediaDevices.getUserMedia({audio:true})
 		lag = 0.1;
 	}
 
+	var params = {}
+	var param = location.search.slice(1).split("&");
+	if (param && param[0]) {
+		for (var i = 0; i < param.length; ++i) {
+			var pair = param[i].split("=");
+			params[pair[0]] = pair[1];
+		}
+
+		if (params["lag"]) {
+			lag = parseFloat(params["lag"]);
+			log("lag=", lag);
+		}
+	}
+
 	if (window.MediaRecorder) {
 		recorder = new MediaRecorder(stream);
 		recorder.ondataavailable = function(e) {
 			if (useAudio) {
 				tracks[recIndex].audio.src = URL.createObjectURL(e.data);
-				log(recIndex + " data lag ", audioContext.currentTime - time);
 				tracks[recIndex].audio.currentTime = audioContext.currentTime - time + lag;
+				log(recIndex + " data lag ", audioContext.currentTime - time);
 				tracks[recIndex].audio.play();
 				tracks[recIndex].button.style.background = "";
 				recIndex = 0;
@@ -99,8 +113,8 @@ navigator.mediaDevices.getUserMedia({audio:true})
 				playBuffer(i);
 			}
 			else if (tracks[i].audio && tracks[i].audio.src) {
-				log(i + " play lag ", audioContext.currentTime - time);
 				tracks[i].audio.currentTime = audioContext.currentTime - time + lag;
+				log(i + " play lag ", audioContext.currentTime - time);
 				tracks[i].audio.play();
 			}
 		}
