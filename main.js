@@ -3,16 +3,20 @@
 
 navigator.mediaDevices.getUserMedia({audio:true})
 .then(function(stream) {
-	var audioContext, gainNode, recorder, reader, time, useAudio=1, recIndex=0, tracks=[];
+	var audioContext, gainNode, recorder, reader, time, lag=0, useAudio=1, recIndex=0, tracks=[];
+
+	var ua = navigator.userAgent;
+	if (ua.indexOf("Mobile") >= 0) {
+		lag = 0.1;
+	}
 
 	if (window.MediaRecorder) {
 		recorder = new MediaRecorder(stream);
 		recorder.ondataavailable = function(e) {
 			if (useAudio) {
 				tracks[recIndex].audio.src = URL.createObjectURL(e.data);
-				tracks[recIndex].when += audioContext.currentTime - time;
-				tracks[recIndex].audio.currentTime = tracks[recIndex].when;
-				log(recIndex + " data lag ", tracks[recIndex].when);
+				log(recIndex + " data lag ", audioContext.currentTime - time);
+				tracks[recIndex].audio.currentTime = audioContext.currentTime - time + lag;
 				tracks[recIndex].audio.play();
 				tracks[recIndex].button.style.background = "";
 				recIndex = 0;
@@ -95,8 +99,8 @@ navigator.mediaDevices.getUserMedia({audio:true})
 				playBuffer(i);
 			}
 			else if (tracks[i].audio && tracks[i].audio.src) {
-				tracks[i].audio.currentTime = audioContext.currentTime - time + tracks[i].when;
 				log(i + " play lag ", audioContext.currentTime - time);
+				tracks[i].audio.currentTime = audioContext.currentTime - time + lag;
 				tracks[i].audio.play();
 			}
 		}
@@ -113,14 +117,13 @@ navigator.mediaDevices.getUserMedia({audio:true})
 						gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
 						recorder.start();
 						tracks[recIndex].when = audioContext.currentTime - time;
-						log(recIndex + " recb lag ", tracks[recIndex].when);
+						log(recIndex + " recb lag ", audioContext.currentTime - time);
 						tracks[recIndex].button.style.background = "red";
 					}
 					else if (recorder.state == "recording") {
 						recorder.stop();
 						gainNode.gain.setValueAtTime(1, audioContext.currentTime);
-						if (window.MediaRecorder) tracks[recIndex].when += audioContext.currentTime - time;
-						log(recIndex + " rece lag ", tracks[recIndex].when);
+						log(recIndex + " rece lag ", audioContext.currentTime - time);
 					}
 				}
 				play();
