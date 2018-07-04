@@ -5,12 +5,8 @@ navigator.mediaDevices.getUserMedia({audio:true})
 .then(function(stream) {
 	var audioContext, gainNode, recorder, reader, tracks=[];
 	var vars = {
-		lag:0,
+		lag:0.1,
 		audio:1
-	}
-
-	if (navigator.platform.indexOf("Linux") >= 0 || navigator.platform.indexOf("Win") >= 0) {
-		vars.lag = 0.1;
 	}
 
 	var param = location.search.slice(1).split("&");
@@ -103,7 +99,7 @@ navigator.mediaDevices.getUserMedia({audio:true})
 	}
 
 	var request = new XMLHttpRequest();
-	request.open("get", "shubeat3." + (new Audio().canPlayType('audio/ogg')?"ogg":"m4a"), true);
+	request.open("get", new Audio().canPlayType('audio/ogg')?g.ogg:g.m4a, true);
 	request.responseType = "arraybuffer";
 	request.onload = function() {
 		tracks[0].button.innerHTML = "play";
