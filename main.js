@@ -23,8 +23,8 @@ navigator.mediaDevices.getUserMedia({audio:true})
 		}
 
 		if (params["lag"]) {
-			vars.lag = params["lag"];
-			log("lag=" + vars.lag);
+			vars.lag = parseFloat(params["lag"]);
+			log("lag=", vars.lag);
 		}
 	}
 
@@ -33,9 +33,10 @@ navigator.mediaDevices.getUserMedia({audio:true})
 		recorder.ondataavailable = function(e) {
 			if (vars.audio) {
 				tracks[vars.rec].audio.src = URL.createObjectURL(e.data);
-				tracks[vars.rec].audio.currentTime = audioContext.currentTime - vars.time + vars.lag;
-				log(vars.rec + " data lag ", audioContext.currentTime - vars.time);
+				vars.dt = audioContext.currentTime - vars.time;
+				tracks[vars.rec].audio.currentTime = vars.dt + vars.lag;
 				tracks[vars.rec].audio.play();
+				log(vars.rec + " data lag ", vars.dt);
 				tracks[vars.rec].button.style.background = "";
 				vars.rec = 0;
 			}
@@ -61,8 +62,9 @@ navigator.mediaDevices.getUserMedia({audio:true})
 	function decode(data) {
 		audioContext.decodeAudioData(data, function(buffer) {
 			tracks[vars.rec].buffer = buffer;
-			log(vars.rec + " data lag ", audioContext.currentTime - vars.time);
-			playBuffer(vars.rec, audioContext.currentTime - vars.time);
+			vars.dt = audioContext.currentTime - vars.time;
+			playBuffer(vars.rec, vars.dt);
+			log(vars.rec + " data lag ", vars.dt);
 			tracks[vars.rec].button.style.background = "";
 			vars.rec = 0;
 		});
@@ -118,11 +120,13 @@ navigator.mediaDevices.getUserMedia({audio:true})
 				playBuffer(i);
 			}
 			else if (tracks[i].audio && tracks[i].audio.src) {
-				tracks[i].audio.currentTime = audioContext.currentTime - vars.time + vars.lag;
-				log(i + " play lag ", audioContext.currentTime - vars.time);
+				var dt = audioContext.currentTime - vars.time;
+				tracks[i].audio.currentTime = dt + vars.lag;
 				tracks[i].audio.play();
+				if (dt != vars.dt) log(i + " play lag ", dt);
 			}
 		}
+		vars.dt = 0;
 
 		tracks[0].source.onended = function() {
 			if (tracks[0].when) {
@@ -135,14 +139,15 @@ navigator.mediaDevices.getUserMedia({audio:true})
 					if (recorder.state == "inactive") {
 						gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
 						recorder.start();
-						tracks[vars.rec].when = audioContext.currentTime - vars.time;
-						log(vars.rec + " recb lag ", tracks[vars.rec].when);
+						tracks[vars.rec].when = vars.dt = audioContext.currentTime - vars.time;
+						log(vars.rec + " recb lag ", vars.dt);
 						tracks[vars.rec].button.style.background = "red";
 					}
 					else if (recorder.state == "recording") {
 						recorder.stop();
 						gainNode.gain.setValueAtTime(1, audioContext.currentTime);
-						log(vars.rec + " rece lag ", audioContext.currentTime - vars.time);
+						vars.dt = audioContext.currentTime - vars.time;
+						log(vars.rec + " rece lag ", vars.dt);
 					}
 				}
 				play();
@@ -154,8 +159,9 @@ navigator.mediaDevices.getUserMedia({audio:true})
 		tracks[i].source = audioContext.createBufferSource();
 		tracks[i].source.buffer = tracks[i].buffer;
 		tracks[i].source.connect(gainNode);
-		log(i + " play lag ", audioContext.currentTime - vars.time - t);
 		tracks[i].source.start(audioContext.currentTime + tracks[i].when - t);
+		var dt = audioContext.currentTime - vars.time;
+		if (dt != vars.dt) log(i + " play lag ", dt - t);
 	}
 
 	for (var i=1;i<=4;++i) {
