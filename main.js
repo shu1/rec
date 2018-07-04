@@ -9,14 +9,13 @@ navigator.mediaDevices.getUserMedia({audio:true})
 		audio:1
 	}
 
-	var ua = navigator.userAgent;
-	if (ua.indexOf("Mobile") >= 0) {
+	if (navigator.platform.indexOf("Linux") >= 0 || navigator.platform.indexOf("Win") >= 0) {
 		vars.lag = 0.1;
 	}
 
-	var params = {}
 	var param = location.search.slice(1).split("&");
 	if (param && param[0]) {
+		var params = {}
 		for (var i = 0; i < param.length; ++i) {
 			var pair = param[i].split("=");
 			params[pair[0]] = pair[1];
