@@ -3,11 +3,15 @@
 
 navigator.mediaDevices.getUserMedia({audio:true})
 .then(function(stream) {
-	var audioContext, gainNode, recorder, reader, time, lag=0, useAudio=1, recIndex=0, tracks=[];
+	var audioContext, gainNode, recorder, reader, tracks=[];
+	var vars = {
+		lag:0,
+		audio:1
+	}
 
 	var ua = navigator.userAgent;
 	if (ua.indexOf("Mobile") >= 0) {
-		lag = 0.1;
+		vars.lag = 0.1;
 	}
 
 	var params = {}
@@ -19,28 +23,28 @@ navigator.mediaDevices.getUserMedia({audio:true})
 		}
 
 		if (params["lag"]) {
-			lag = parseFloat(params["lag"]);
-			log("lag=", lag);
+			vars.lag = params["lag"];
+			log("lag=" + vars.lag);
 		}
 	}
 
 	if (window.MediaRecorder) {
 		recorder = new MediaRecorder(stream);
 		recorder.ondataavailable = function(e) {
-			if (useAudio) {
-				tracks[recIndex].audio.src = URL.createObjectURL(e.data);
-				tracks[recIndex].audio.currentTime = audioContext.currentTime - time + lag;
-				log(recIndex + " data lag ", audioContext.currentTime - time);
-				tracks[recIndex].audio.play();
-				tracks[recIndex].button.style.background = "";
-				recIndex = 0;
+			if (vars.audio) {
+				tracks[vars.rec].audio.src = URL.createObjectURL(e.data);
+				tracks[vars.rec].audio.currentTime = audioContext.currentTime - vars.time + vars.lag;
+				log(vars.rec + " data lag ", audioContext.currentTime - vars.time);
+				tracks[vars.rec].audio.play();
+				tracks[vars.rec].button.style.background = "";
+				vars.rec = 0;
 			}
 			else {
 				reader.readAsArrayBuffer(e.data);
 			}
 		}
 
-		if (!useAudio) {
+		if (!vars.audio) {
 			reader = new FileReader();
 			reader.onload = function() {
 				decode(reader.result);
@@ -56,11 +60,11 @@ navigator.mediaDevices.getUserMedia({audio:true})
 
 	function decode(data) {
 		audioContext.decodeAudioData(data, function(buffer) {
-			tracks[recIndex].buffer = buffer;
-			log(recIndex + " data lag ", audioContext.currentTime - time);
-			playBuffer(recIndex, time - audioContext.currentTime);
-			tracks[recIndex].button.style.background = "";
-			recIndex = 0;
+			tracks[vars.rec].buffer = buffer;
+			log(vars.rec + " data lag ", audioContext.currentTime - vars.time);
+			playBuffer(vars.rec, audioContext.currentTime - vars.time);
+			tracks[vars.rec].button.style.background = "";
+			vars.rec = 0;
 		});
 	}
 
@@ -74,11 +78,12 @@ navigator.mediaDevices.getUserMedia({audio:true})
 
 			audioContext.decodeAudioData(request.response, function(buffer) {
 				tracks[0].buffer = buffer;
+				vars.time = audioContext.currentTime;
 				play();
 				tracks[0].button.innerHTML = "stop";
 			});
 
-			if (useAudio) {
+			if (vars.audio) {
 				for (var i=1;i<=4;++i) {
 					var source = audioContext.createMediaElementSource(tracks[i].audio);
 					source.connect(gainNode);
@@ -90,7 +95,7 @@ navigator.mediaDevices.getUserMedia({audio:true})
 			tracks[0].when = 1;
 		}
 		else if (tracks[0].buffer) {
-			time = audioContext.currentTime;
+			vars.time = audioContext.currentTime;
 			play();
 			tracks[0].button.innerHTML = "stop";
 		}
@@ -113,8 +118,8 @@ navigator.mediaDevices.getUserMedia({audio:true})
 				playBuffer(i);
 			}
 			else if (tracks[i].audio && tracks[i].audio.src) {
-				tracks[i].audio.currentTime = audioContext.currentTime - time + lag;
-				log(i + " play lag ", audioContext.currentTime - time);
+				tracks[i].audio.currentTime = audioContext.currentTime - vars.time + vars.lag;
+				log(i + " play lag ", audioContext.currentTime - vars.time);
 				tracks[i].audio.play();
 			}
 		}
@@ -125,19 +130,19 @@ navigator.mediaDevices.getUserMedia({audio:true})
 				tracks[0].button.innerHTML = "play";
 			}
 			else {
-				time = audioContext.currentTime;
-				if (recIndex) {
+				vars.time = audioContext.currentTime;
+				if (vars.rec) {
 					if (recorder.state == "inactive") {
 						gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
 						recorder.start();
-						tracks[recIndex].when = audioContext.currentTime - time;
-						log(recIndex + " recb lag ", audioContext.currentTime - time);
-						tracks[recIndex].button.style.background = "red";
+						tracks[vars.rec].when = audioContext.currentTime - vars.time;
+						log(vars.rec + " recb lag ", tracks[vars.rec].when);
+						tracks[vars.rec].button.style.background = "red";
 					}
 					else if (recorder.state == "recording") {
 						recorder.stop();
 						gainNode.gain.setValueAtTime(1, audioContext.currentTime);
-						log(recIndex + " rece lag ", audioContext.currentTime - time);
+						log(vars.rec + " rece lag ", audioContext.currentTime - vars.time);
 					}
 				}
 				play();
@@ -149,41 +154,43 @@ navigator.mediaDevices.getUserMedia({audio:true})
 		tracks[i].source = audioContext.createBufferSource();
 		tracks[i].source.buffer = tracks[i].buffer;
 		tracks[i].source.connect(gainNode);
-		log(i + " play lag ", audioContext.currentTime - time);
-		tracks[i].source.start(audioContext.currentTime + tracks[recIndex].when + t);
+		log(i + " play lag ", audioContext.currentTime - vars.time - t);
+		tracks[i].source.start(audioContext.currentTime + tracks[i].when - t);
 	}
 
 	for (var i=1;i<=4;++i) {
 		initTrack(i);
 	}
 
-	function initTrack(index) {
-		tracks[index] = {};
-		tracks[index].when = 0;
-		tracks[index].button = document.getElementById("button"+index);
-		tracks[index].button.onclick = function() {
+	function initTrack(i) {
+		tracks[i] = {};
+		tracks[i].when = 0;
+		tracks[i].button = document.getElementById("button"+i);
+		tracks[i].button.onclick = function() {
 			if (recorder.state == "inactive") {
-				if (recIndex) tracks[recIndex].button.style.background = "";
-				if (recIndex == index) {
-					recIndex = 0;
+				if (vars.rec) tracks[vars.rec].button.style.background = "";
+				if (vars.rec != i) {
+					vars.rec = i;
+					tracks[i].button.style.background = "blue";
 				}
 				else {
-					recIndex = index;
-					tracks[recIndex].button.style.background = "blue";
+					vars.rec = 0;
 				}
 			}
 		}
-		if (useAudio) tracks[index].audio = document.getElementById("track"+index);
+		if (vars.audio) tracks[i].audio = document.getElementById("track"+i);
 	}
 
 	var logged;
 	function log(e, t) {
-		if (t) {
+		if (t != 0) {
 			if (logged) {
-				logDiv.innerHTML += "<br>" + e + t.toFixed(3);
+				logDiv.innerHTML += "<br>" + e;
+				if(t) logDiv.innerHTML += t.toFixed(3);
 			}
 			else {
-				logDiv.innerHTML = e + t.toFixed(3);
+				logDiv.innerHTML = e;
+				if(t) logDiv.innerHTML += t.toFixed(3);
 				logged = 1;
 			}
 		}
