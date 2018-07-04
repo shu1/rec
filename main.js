@@ -29,7 +29,7 @@ navigator.mediaDevices.getUserMedia({audio:true})
 			if (vars.audio) {
 				tracks[vars.rec].audio.src = URL.createObjectURL(e.data);
 				vars.dt = audioContext.currentTime - vars.time;
-				tracks[vars.rec].audio.currentTime = vars.dt + vars.lag;
+				tracks[vars.rec].audio.currentTime = vars.dt + vars.lag + tracks[vars.rec].when;
 				tracks[vars.rec].audio.play();
 				log(vars.rec + " data lag ", vars.dt);
 				tracks[vars.rec].button.style.background = "";
@@ -143,6 +143,7 @@ navigator.mediaDevices.getUserMedia({audio:true})
 						gainNode.gain.setValueAtTime(1, audioContext.currentTime);
 						vars.dt = audioContext.currentTime - vars.time;
 						log(vars.rec + " rece lag ", vars.dt);
+						if (window.MediaRecorder) tracks[vars.rec].when += vars.dt;
 					}
 				}
 				play();
