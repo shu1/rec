@@ -33,6 +33,7 @@ navigator.mediaDevices.getUserMedia({audio:true})
 				tracks[vars.rec].audio.play();
 				log(vars.rec + " data lag ", vars.dt);
 				tracks[vars.rec].button.style.background = "";
+				tracks[vars.rec].cell.innerHTML = "<a href='" + tracks[vars.rec].audio.src + "' download>download<a/>";
 				vars.rec = 0;
 			}
 			else {
@@ -50,6 +51,7 @@ navigator.mediaDevices.getUserMedia({audio:true})
 	else {
 		recorder = new Recorder({encoderPath:"waveWorker.min.js"});
 		recorder.ondataavailable = function(typedArray) {
+			tracks[vars.rec].cell.innerHTML = "<a href='" + URL.createObjectURL(new Blob([typedArray], {type:'audio/wav'})) + "' download>download<a/>";
 			decode(typedArray.buffer);
 		}
 	}
@@ -167,6 +169,7 @@ navigator.mediaDevices.getUserMedia({audio:true})
 	function initTrack(i) {
 		tracks[i] = {};
 		tracks[i].when = 0;
+		tracks[i].cell = document.getElementById("cell"+i);
 		tracks[i].button = document.getElementById("button"+i);
 		tracks[i].button.onclick = function() {
 			if (recorder.state == "inactive") {
