@@ -51,7 +51,7 @@ navigator.mediaDevices.getUserMedia({audio:true})
 	else {
 		recorder = new Recorder({encoderPath:"waveWorker.min.js"});
 		recorder.ondataavailable = function(typedArray) {
-			tracks[vars.rec].cell.innerHTML = "<a href='" + URL.createObjectURL(new Blob([typedArray], {type:'audio/wav'})) + "' download>download<a/>";
+			tracks[vars.rec].cell.innerHTML = "<a href='" + URL.createObjectURL(new Blob([typedArray], {type:'audio/wav'})) + "' download='track" + vars.rec + ".wav'>download<a/>";
 			decode(typedArray.buffer);
 		}
 	}
