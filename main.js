@@ -1,7 +1,7 @@
 // Shuichi Aizawa 2018
 "use strict";
 
-var audioContext, gainNode, recorder, reader, tracks=[];
+var canvas, context2d, gradient, audioContext, gainNode, recorder, reader, tracks=[];
 var vars = {
 	lag:0.1,
 	audio:1
@@ -26,23 +26,7 @@ window.onload = function() {
 	tracks[0].button = document.getElementById("button0");
 	tracks[0].button.onclick = function() {
 		if (!audioContext) {
-			audioContext = new (window.AudioContext || window.webkitAudioContext)();
-			gainNode = audioContext.createGain();
-			gainNode.connect(audioContext.destination);
-
-			audioContext.decodeAudioData(request.response, function(buffer) {
-				tracks[0].buffer = buffer;
-				vars.time = audioContext.currentTime;
-				play();
-				tracks[0].button.innerHTML = "stop";
-			});
-
-			if (vars.audio) {
-				for (var i=1;i<=4;++i) {
-					var source = audioContext.createMediaElementSource(tracks[i].audio);
-					source.connect(gainNode);
-				}
-			}
+			initAudio(request.response);
 		}
 		else if (tracks[0].button.innerHTML == "stop") {
 			tracks[0].button.style.background = "blue";
@@ -85,8 +69,67 @@ window.onload = function() {
 				}
 			}
 		}
-		if (vars.audio) tracks[i].audio = document.getElementById("track"+i);
+		if (vars.audio) tracks[i].audio = document.getElementById("audio"+i);
 	}
+
+	canvas = document.getElementById("canvas");
+	context2d = canvas.getContext("2d");
+	gradient = context2d.createLinearGradient(0,0,0,canvas.height);
+	gradient.addColorStop(0, "blue");
+	gradient.addColorStop(1, "red");
+	context2d.fillStyle = gradient;
+
+	canvas.onmousedown = function() {
+		if (!audioContext && request.response) {
+			initAudio(request.response);
+		}
+	}
+}
+
+function draw(time) {
+	context2d.clearRect(0, 0, canvas.width, canvas.height);
+
+	var data = tracks[0].data;
+	var offset = (data.length - canvas.width) / 2;
+	tracks[0].analyser.getByteTimeDomainData(data);
+
+	context2d.beginPath();
+	context2d.moveTo(canvas.width, canvas.height);
+	for (var i = canvas.width; i >= 0; --i) {
+		context2d.lineTo(i, data[i + offset]);
+	}
+	context2d.lineTo(0, canvas.height);
+	context2d.fill();
+
+	requestAnimationFrame(draw);
+}
+
+function initAudio(data) {
+	audioContext = new (window.AudioContext || window.webkitAudioContext)();
+	gainNode = audioContext.createGain();
+	gainNode.connect(audioContext.destination);
+	tracks[0].analyser = audioContext.createAnalyser();
+	tracks[0].analyser.connect(gainNode);
+	tracks[0].data = new Uint8Array(tracks[0].analyser.frequencyBinCount);
+
+	audioContext.decodeAudioData(data, function(buffer) {
+		tracks[0].buffer = buffer;
+		vars.time = audioContext.currentTime;
+		play();
+		tracks[0].button.innerHTML = "stop";
+	});
+
+	for (var i=1;i<=4;++i) {
+		tracks[i].analyser = audioContext.createAnalyser();
+		tracks[i].analyser.connect(gainNode);
+
+		if (vars.audio) {
+			var source = audioContext.createMediaElementSource(tracks[i].audio);
+			source.connect(tracks[i].analyser);
+		}
+	}
+
+	requestAnimationFrame(draw);
 }
 
 function play() {
@@ -136,7 +179,7 @@ function play() {
 function playBuffer(i, t=0) {
 	tracks[i].source = audioContext.createBufferSource();
 	tracks[i].source.buffer = tracks[i].buffer;
-	tracks[i].source.connect(gainNode);
+	tracks[i].source.connect(tracks[i].analyser);
 	tracks[i].source.start(audioContext.currentTime + tracks[i].when - t);
 	var dt = audioContext.currentTime - vars.time;
 	if (dt != vars.dt) log(i + " play lag ", dt - t);
