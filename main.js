@@ -1,7 +1,7 @@
 // Shuichi Aizawa 2018
 "use strict";
 
-var canvas, audioContext, gainNode, recorder, reader, tracks=[];
+var canvas, audioContext, gainNode, recorder, tracks=[];
 var vars = {
 	lag:0.1,
 	audio:1
@@ -183,6 +183,7 @@ function playBuffer(i, t=0) {
 navigator.mediaDevices.getUserMedia({audio:true})
 .then(function(stream) {
 	if (window.MediaRecorder) {
+		var reader;
 		recorder = new MediaRecorder(stream);
 		recorder.ondataavailable = function(e) {
 			if (vars.audio) {
