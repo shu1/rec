@@ -1,7 +1,7 @@
 // Shuichi Aizawa 2018
 "use strict";
 
-var canvas, context2d, gradient, audioContext, gainNode, recorder, reader, tracks=[];
+var canvas, audioContext, gainNode, recorder, reader, tracks=[];
 var vars = {
 	lag:0.1,
 	audio:1
@@ -39,15 +39,6 @@ window.onload = function() {
 		}
 	}
 
-	var request = new XMLHttpRequest();
-	request.open("get", new Audio().canPlayType('audio/ogg')?g.ogg:g.m4a, true);
-	request.responseType = "arraybuffer";
-	request.onload = function() {
-		tracks[0].button.innerHTML = "play";
-		tracks[0].button.disabled = false;
-	}
-	request.send();
-
 	for (var i=1;i<=4;++i) {
 		initTrack(i);
 	}
@@ -72,13 +63,16 @@ window.onload = function() {
 		if (vars.audio) tracks[i].audio = document.getElementById("audio"+i);
 	}
 
-	canvas = document.getElementById("canvas");
-	context2d = canvas.getContext("2d");
-	gradient = context2d.createLinearGradient(0,0,0,canvas.height);
-	gradient.addColorStop(0, "blue");
-	gradient.addColorStop(1, "red");
-	context2d.fillStyle = gradient;
+	var request = new XMLHttpRequest();
+	request.open("get", new Audio().canPlayType('audio/ogg')?g.ogg:g.m4a, true);
+	request.responseType = "arraybuffer";
+	request.onload = function() {
+		tracks[0].button.innerHTML = "play";
+		tracks[0].button.disabled = false;
+	}
+	request.send();
 
+	canvas = document.getElementById("canvas");
 	canvas.onmousedown = function() {
 		if (!audioContext && request.response) {
 			initAudio(request.response);
@@ -87,6 +81,7 @@ window.onload = function() {
 }
 
 function draw(time) {
+	var context2d = canvas.getContext("2d");
 	context2d.clearRect(0, 0, canvas.width, canvas.height);
 
 	var data = tracks[0].data;
@@ -94,11 +89,11 @@ function draw(time) {
 	tracks[0].analyser.getByteTimeDomainData(data);
 
 	context2d.beginPath();
-	context2d.moveTo(canvas.width, canvas.height);
+	context2d.moveTo(canvas.width, 0);
 	for (var i = canvas.width; i >= 0; --i) {
 		context2d.lineTo(i, data[i + offset]);
 	}
-	context2d.lineTo(0, canvas.height);
+	context2d.lineTo(0,0);
 	context2d.fill();
 
 	requestAnimationFrame(draw);
