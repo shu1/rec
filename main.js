@@ -76,6 +76,8 @@ window.onload = function() {
 	canvas = document.getElementById("canvas");
 	var context2d = canvas.getContext("2d");
 	context2d.fillRect(0, 0, canvas.width, 64);
+	context2d.lineWidth = 2;
+	context2d.strokeStyle = "white";
 
 	canvas.onmousedown = function() {
 		if (!audioContext && request.response) {
@@ -103,8 +105,22 @@ function draw(time) {
 
 	var x = ((vars.time - audioContext.currentTime) / tracks[0].buffer.duration + 1) * canvas.width;
 	var dy = (canvas.height - 64)/4;
-	var rx = dy/1.5;
-	var ry = dy/2.5;
+	var rx = 64;	// dy/1.5;
+	var ry = 48;	// dy/2.5;
+
+	context2d.beginPath();
+	for (var i=1;i<=4;++i) {
+		if (tracks[i].audio.src) {
+			var y = dy * i;
+			var data = tracks[i].data;
+			tracks[i].analyser.getByteTimeDomainData(data);
+			context2d.moveTo(x + rx - 1, y);	// don't include first/last pixels sticks out of ellipse
+			for (var j = data.length-1; j > 0; --j) {
+				context2d.lineTo(x - rx + j, y + (data[j]-128)/5);
+			}
+		}
+	}
+	context2d.stroke();
 
 	for (var i=1;i<=4;++i) {
 		var y = dy * i;
@@ -139,7 +155,9 @@ function initAudio(data) {
 
 	for (var i=1;i<=4;++i) {
 		tracks[i].analyser = audioContext.createAnalyser();
+		tracks[i].analyser.fftSize = 256;
 		tracks[i].analyser.connect(gainNode);
+		tracks[i].data = new Uint8Array(tracks[i].analyser.frequencyBinCount);
 
 		if (vars.audio) {
 			var source = audioContext.createMediaElementSource(tracks[i].audio);
