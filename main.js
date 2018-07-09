@@ -105,8 +105,8 @@ function draw(time) {
 
 	var x = ((vars.time - audioContext.currentTime) / tracks[0].buffer.duration + 1) * canvas.width;
 	var dy = (canvas.height - 64)/4;
-	var rx = 64;	// dy/1.5;
-	var ry = 48;	// dy/2.5;
+	var rx = 72;
+	var ry = 52;
 
 	context2d.beginPath();
 	for (var i=1;i<=4;++i) {
@@ -114,9 +114,9 @@ function draw(time) {
 			var y = dy * i;
 			var data = tracks[i].data;
 			tracks[i].analyser.getByteTimeDomainData(data);
-			context2d.moveTo(x + rx - 1, y);	// don't include first/last pixels sticks out of ellipse
-			for (var j = data.length-1; j > 0; --j) {
-				context2d.lineTo(x - rx + j, y + (data[j]-128)/5);
+			context2d.moveTo(x + 64, y);
+			for (var j = data.length-1; j >= 0; --j) {
+				context2d.lineTo(x - 64 + j, y + (data[j]-128)/5);
 			}
 		}
 	}
