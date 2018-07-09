@@ -2,6 +2,7 @@
 "use strict";
 
 var canvas, audioContext, gainNode, recorder, tracks=[];
+var colors = ["orange", "fuchsia", "yellow", "aqua", "lime"];
 var vars = {
 	lag:0.1,
 	audio:1
@@ -73,6 +74,9 @@ window.onload = function() {
 	request.send();
 
 	canvas = document.getElementById("canvas");
+	var context2d = canvas.getContext("2d");
+	context2d.fillRect(0, 0, canvas.width, 64);
+
 	canvas.onmousedown = function() {
 		if (!audioContext && request.response) {
 			initAudio(request.response);
@@ -85,16 +89,33 @@ function draw(time) {
 	context2d.clearRect(0, 0, canvas.width, canvas.height);
 
 	var data = tracks[0].data;
-	var offset = (data.length - canvas.width) / 2;
+	var offset = (data.length - canvas.width)/2;
 	tracks[0].analyser.getByteTimeDomainData(data);
 
+	context2d.fillStyle = "black";
 	context2d.beginPath();
 	context2d.moveTo(canvas.width, 0);
 	for (var i = canvas.width; i >= 0; --i) {
-		context2d.lineTo(i, data[i + offset]);
+		context2d.lineTo(i, data[i + offset]/2);
 	}
 	context2d.lineTo(0,0);
 	context2d.fill();
+
+	var x = ((vars.time - audioContext.currentTime) / tracks[0].buffer.duration + 1) * canvas.width;
+	var dy = (canvas.height - 64)/4;
+	var rx = dy/1.5;
+	var ry = dy/2.5;
+
+	for (var i=1;i<=4;++i) {
+		var y = dy * i;
+		var gradient = context2d.createRadialGradient(x - rx/3, y, 0, x, y, rx);
+		gradient.addColorStop(0, "rgba(255,255,255,0)");
+		gradient.addColorStop(1, i == vars.rec ? colors[0] : colors[i]);
+		context2d.fillStyle = gradient;
+		context2d.beginPath();
+		context2d.ellipse(x, y, rx, ry, 0, 0, 2 * Math.PI);
+		context2d.fill();
+	}
 
 	requestAnimationFrame(draw);
 }
@@ -112,6 +133,8 @@ function initAudio(data) {
 		vars.time = audioContext.currentTime;
 		play();
 		tracks[0].button.innerHTML = "stop";
+
+		requestAnimationFrame(draw);
 	});
 
 	for (var i=1;i<=4;++i) {
@@ -123,8 +146,6 @@ function initAudio(data) {
 			source.connect(tracks[i].analyser);
 		}
 	}
-
-	requestAnimationFrame(draw);
 }
 
 function play() {
