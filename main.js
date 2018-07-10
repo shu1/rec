@@ -6,6 +6,7 @@ var colors = ["orange", "fuchsia", "yellow", "aqua", "lime"];
 var vars = {
 	fftSize:512,
 	audio:1,
+	gain:1,
 	lag:0.1
 }
 
@@ -21,6 +22,11 @@ window.onload = function() {
 		if (params["lag"]) {
 			vars.lag = parseFloat(params["lag"]);
 			log("lag=", vars.lag);
+		}
+
+		if (params["gain"]) {
+			vars.gain = parseFloat(params["gain"]);
+			log("gain=", vars.gain);
 		}
 	}
 
@@ -172,6 +178,7 @@ function initAudio(data) {
 
 	gainNode = audioContext.createGain();
 	gainNode.connect(analyser);
+	gainNode.gain.setValueAtTime(vars.gain, audioContext.currentTime);
 
 	tracks[0].analyser = audioContext.createAnalyser();
 	tracks[0].analyser.fftSize = vars.fftSize;
@@ -248,7 +255,7 @@ function play() {
 				}
 				else if (recorder.state == "recording") {
 					recorder.stop();
-					gainNode.gain.setValueAtTime(1, audioContext.currentTime);
+					gainNode.gain.setValueAtTime(vars.gain, audioContext.currentTime);
 					vars.dt = audioContext.currentTime - vars.time;
 					log(vars.rec + " rece lag ", vars.dt);
 					if (window.MediaRecorder) tracks[vars.rec].when += vars.dt;
