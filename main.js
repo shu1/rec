@@ -4,8 +4,9 @@
 var canvas, audioContext, analyser, gainNode, recorder, tracks=[];
 var colors = ["orange", "fuchsia", "yellow", "aqua", "lime"];
 var vars = {
-	lag:0.1,
-	audio:1
+	fftSize:512,
+	audio:1,
+	lag:0.1
 }
 
 window.onload = function() {
@@ -105,8 +106,9 @@ function draw(time) {
 
 	var x = ((vars.time - audioContext.currentTime) / tracks[0].buffer.duration + 1) * canvas.width;
 	var dy = (canvas.height - 64)/4;
-	var rx = 72;
-	var ry = 52;
+	var r = 64;
+	var rx = r+8;
+	var ry = r-12;
 
 	context2d.beginPath();
 	for (var i=1;i<=4;++i) {
@@ -115,17 +117,18 @@ function draw(time) {
 
 		if (i == vars.rec && recorder.state == "recording") {
 			tracks[0].analyser.getByteTimeDomainData(data);
-			context2d.moveTo(x+64, y);
-			var dx = (x+64)/128;
+			context2d.moveTo(x + r, y);
+			var dx = (x + r) / data.length;
 			for (var j = data.length-1; j >= 0; --j) {
 				context2d.lineTo(dx * j, y + (data[j]-128)/5);
 			}
 		}
 		else if (tracks[i].buffer || tracks[i].audio.src) {
 			tracks[i].analyser.getByteTimeDomainData(data);
-			context2d.moveTo(x+64, y);
+			context2d.moveTo(x + r, y);
+			var dx = r * 2 / data.length;
 			for (var j = data.length-1; j >= 0; --j) {
-				context2d.lineTo(x-64 + j, y + (data[j]-128)/5);
+				context2d.lineTo(x - r + dx * j, y + (data[j]-128)/5);
 			}
 		}
 	}
@@ -156,13 +159,13 @@ function initAudio(data) {
 	gainNode.connect(analyser);
 
 	tracks[0].analyser = audioContext.createAnalyser();
-	tracks[0].analyser.fftSize = 256;
+	tracks[0].analyser.fftSize = vars.fftSize;
 	var source = audioContext.createMediaStreamSource(vars.stream);
 	source.connect(tracks[0].analyser);
 
 	for (var i=1;i<=4;++i) {
 		tracks[i].analyser = audioContext.createAnalyser();
-		tracks[i].analyser.fftSize = 256;
+		tracks[i].analyser.fftSize = vars.fftSize;
 		tracks[i].analyser.connect(gainNode);
 		tracks[i].data = new Uint8Array(tracks[i].analyser.frequencyBinCount);
 
