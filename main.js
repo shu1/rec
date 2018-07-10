@@ -29,8 +29,7 @@ window.onload = function() {
 	tracks[0].button.onclick = function() {
 		if (audioContext) {
 			stop();
-		}
-		else {
+		} else {
 			initAudio(request.response);
 		}
 	}
@@ -80,7 +79,7 @@ window.onload = function() {
 			vars.y -= canvas.offsetTop;
 
 			var i = Math.ceil((vars.y-64) / vars.dy);
-			if (i) {
+			if (i && tracks[0].button.innerHTML == "stop") {
 				rec(i);
 			} else {
 				stop();
@@ -98,8 +97,7 @@ function rec(i) {
 		if (vars.rec != i) {
 			vars.rec = i;
 			tracks[i].button.style.background = "blue";
-		}
-		else {
+		} else {
 			vars.rec = 0;
 		}
 	}
@@ -238,8 +236,7 @@ function play() {
 		if (tracks[0].when) {
 			tracks[0].button.style.background = "";
 			tracks[0].button.innerHTML = "play";
-		}
-		else {
+		} else {
 			vars.time = audioContext.currentTime;
 			if (vars.rec) {
 				if (recorder.state == "inactive") {
@@ -288,8 +285,7 @@ navigator.mediaDevices.getUserMedia({audio:true})
 				tracks[vars.rec].button.style.background = "";
 				tracks[vars.rec].cell.innerHTML = "<a href='" + tracks[vars.rec].audio.src + "' download>download<a/>";
 				vars.rec = 0;
-			}
-			else {
+			} else {
 				reader.readAsArrayBuffer(e.data);
 			}
 		}
@@ -300,8 +296,7 @@ navigator.mediaDevices.getUserMedia({audio:true})
 				decode(reader.result);
 			}
 		}
-	}
-	else {
+	} else {
 		recorder = new Recorder({encoderPath:"waveWorker.min.js"});
 		recorder.ondataavailable = function(typedArray) {
 			tracks[vars.rec].cell.innerHTML = "<a href='" + URL.createObjectURL(new Blob([typedArray], {type:'audio/wav'})) + "' download='track" + vars.rec + ".wav'>download<a/>";
@@ -329,8 +324,7 @@ function log(e, t) {
 		if (vars.log) {
 			logDiv.innerHTML += "<br>" + e;
 			if(t) logDiv.innerHTML += t.toFixed(3);
-		}
-		else {
+		} else {
 			logDiv.innerHTML = e;
 			if(t) logDiv.innerHTML += t.toFixed(3);
 			vars.log = 1;
