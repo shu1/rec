@@ -27,17 +27,11 @@ window.onload = function() {
 	tracks[0] = {};
 	tracks[0].button = document.getElementById("button0");
 	tracks[0].button.onclick = function() {
-		if (!audioContext) {
+		if (audioContext) {
+			stop();
+		}
+		else {
 			initAudio(request.response);
-		}
-		else if (tracks[0].button.innerHTML == "stop") {
-			tracks[0].button.style.background = "blue";
-			tracks[0].when = 1;
-		}
-		else if (tracks[0].buffer) {
-			vars.time = audioContext.currentTime;
-			play();
-			tracks[0].button.innerHTML = "stop";
 		}
 	}
 
@@ -51,16 +45,7 @@ window.onload = function() {
 		tracks[i].cell = document.getElementById("cell"+i);
 		tracks[i].button = document.getElementById("button"+i);
 		tracks[i].button.onclick = function() {
-			if (recorder.state == "inactive") {
-				if (vars.rec) tracks[vars.rec].button.style.background = "";
-				if (vars.rec != i) {
-					vars.rec = i;
-					tracks[i].button.style.background = "blue";
-				}
-				else {
-					vars.rec = 0;
-				}
-			}
+			rec(i);
 		}
 		if (vars.audio) tracks[i].audio = document.getElementById("audio"+i);
 	}
@@ -75,14 +60,47 @@ window.onload = function() {
 	request.send();
 
 	canvas = document.getElementById("canvas");
+	vars.dy = (canvas.height - 64)/4;
+
 	var context2d = canvas.getContext("2d");
 	context2d.fillRect(0, 0, canvas.width, 64);
 	context2d.lineWidth = 2;
 	context2d.strokeStyle = "white";
 
 	canvas.onmousedown = function() {
-		if (!audioContext && request.response) {
+		if (audioContext) {
+			if (event.touches) {
+				vars.x = event.touches[0].pageX;
+				vars.y = event.touches[0].pageY;
+			} else {
+				vars.x = event.pageX;
+				vars.y = event.pageY;
+			}
+			vars.x -= canvas.offsetLeft;
+			vars.y -= canvas.offsetTop;
+
+			var i = Math.ceil((vars.y-64) / vars.dy);
+			if (i) {
+				rec(i);
+			} else {
+				stop();
+			}
+		}
+		else if (request.response) {
 			initAudio(request.response);
+		}
+	}
+}
+
+function rec(i) {
+	if (recorder.state == "inactive") {
+		if (vars.rec) tracks[vars.rec].button.style.background = "";
+		if (vars.rec != i) {
+			vars.rec = i;
+			tracks[i].button.style.background = "blue";
+		}
+		else {
+			vars.rec = 0;
 		}
 	}
 }
@@ -105,14 +123,13 @@ function draw(time) {
 	context2d.fill();
 
 	var x = ((vars.time - audioContext.currentTime) / tracks[0].buffer.duration + 1) * canvas.width;
-	var dy = (canvas.height - 64)/4;
 	var r = 64;
 	var rx = r+8;
 	var ry = r-12;
 
 	context2d.beginPath();
 	for (var i=1;i<=4;++i) {
-		var y = dy * i;
+		var y = vars.dy * i;
 		var data = tracks[i].data;
 
 		if (i == vars.rec && recorder.state == "recording") {
@@ -135,7 +152,7 @@ function draw(time) {
 	context2d.stroke();
 
 	for (var i=1;i<=4;++i) {
-		var y = dy * i;
+		var y = vars.dy * i;
 		var gradient = context2d.createRadialGradient(x - rx/3, y, 0, x, y, rx);
 		gradient.addColorStop(0, "rgba(255,255,255,0)");
 		gradient.addColorStop(1, i == vars.rec ? colors[0] : colors[i]);
@@ -183,6 +200,22 @@ function initAudio(data) {
 
 		requestAnimationFrame(draw);
 	});
+}
+
+function stop() {
+	if (tracks[0].when) {
+		tracks[0].when = 0;
+		tracks[0].button.style.background = "";
+	}
+	else if (tracks[0].button.innerHTML == "stop") {
+		tracks[0].button.style.background = "blue";
+		tracks[0].when = 1;
+	}
+	else if (tracks[0].buffer) {
+		vars.time = audioContext.currentTime;
+		play();
+		tracks[0].button.innerHTML = "stop";
+	}
 }
 
 function play() {
