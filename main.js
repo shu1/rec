@@ -72,14 +72,14 @@ window.onload = function() {
 	context2d.lineWidth = 2;
 	context2d.strokeStyle = "white";
 
-	canvas.onmousedown = function() {
+	canvas.onmousedown = function(e) {
 		if (audioContext) {
-			if (event.touches) {
-				vars.x = event.touches[0].pageX;
-				vars.y = event.touches[0].pageY;
+			if (e.touches) {
+				vars.x = e.touches[0].pageX;
+				vars.y = e.touches[0].pageY;
 			} else {
-				vars.x = event.pageX;
-				vars.y = event.pageY;
+				vars.x = e.pageX;
+				vars.y = e.pageY;
 			}
 			vars.x -= canvas.offsetLeft;
 			vars.y -= canvas.offsetTop;
