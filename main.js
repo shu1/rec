@@ -1,7 +1,7 @@
 // Shuichi Aizawa 2018
 "use strict";
 
-var canvas, audioContext, gainNode, recorder, tracks=[];
+var canvas, audioContext, analyser, gainNode, recorder, tracks=[];
 var colors = ["orange", "fuchsia", "yellow", "aqua", "lime"];
 var vars = {
 	lag:0.1,
@@ -92,7 +92,7 @@ function draw(time) {
 
 	var data = tracks[0].data;
 	var offset = (data.length - canvas.width)/2;
-	tracks[0].analyser.getByteTimeDomainData(data);
+	analyser.getByteTimeDomainData(data);
 
 	context2d.fillStyle = "black";
 	context2d.beginPath();
@@ -110,13 +110,22 @@ function draw(time) {
 
 	context2d.beginPath();
 	for (var i=1;i<=4;++i) {
-		if (tracks[i].audio.src) {
-			var y = dy * i;
-			var data = tracks[i].data;
-			tracks[i].analyser.getByteTimeDomainData(data);
-			context2d.moveTo(x + 64, y);
+		var y = dy * i;
+		var data = tracks[i].data;
+
+		if (i == vars.rec && recorder.state == "recording") {
+			tracks[0].analyser.getByteTimeDomainData(data);
+			context2d.moveTo(x+64, y);
+			var dx = (x+64)/128;
 			for (var j = data.length-1; j >= 0; --j) {
-				context2d.lineTo(x - 64 + j, y + (data[j]-128)/5);
+				context2d.lineTo(dx * j, y + (data[j]-128)/5);
+			}
+		}
+		else if (tracks[i].buffer || tracks[i].audio.src) {
+			tracks[i].analyser.getByteTimeDomainData(data);
+			context2d.moveTo(x+64, y);
+			for (var j = data.length-1; j >= 0; --j) {
+				context2d.lineTo(x-64 + j, y + (data[j]-128)/5);
 			}
 		}
 	}
@@ -138,20 +147,18 @@ function draw(time) {
 
 function initAudio(data) {
 	audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+	analyser = audioContext.createAnalyser();
+	analyser.connect(audioContext.destination);
+	tracks[0].data = new Uint8Array(analyser.frequencyBinCount);
+
 	gainNode = audioContext.createGain();
-	gainNode.connect(audioContext.destination);
+	gainNode.connect(analyser);
+
 	tracks[0].analyser = audioContext.createAnalyser();
-	tracks[0].analyser.connect(gainNode);
-	tracks[0].data = new Uint8Array(tracks[0].analyser.frequencyBinCount);
-
-	audioContext.decodeAudioData(data, function(buffer) {
-		tracks[0].buffer = buffer;
-		vars.time = audioContext.currentTime;
-		play();
-		tracks[0].button.innerHTML = "stop";
-
-		requestAnimationFrame(draw);
-	});
+	tracks[0].analyser.fftSize = 256;
+	var source = audioContext.createMediaStreamSource(vars.stream);
+	source.connect(tracks[0].analyser);
 
 	for (var i=1;i<=4;++i) {
 		tracks[i].analyser = audioContext.createAnalyser();
@@ -164,6 +171,15 @@ function initAudio(data) {
 			source.connect(tracks[i].analyser);
 		}
 	}
+
+	audioContext.decodeAudioData(data, function(buffer) {
+		tracks[0].buffer = buffer;
+		vars.time = audioContext.currentTime;
+		play();
+		tracks[0].button.innerHTML = "stop";
+
+		requestAnimationFrame(draw);
+	});
 }
 
 function play() {
@@ -213,7 +229,7 @@ function play() {
 function playBuffer(i, t=0) {
 	tracks[i].source = audioContext.createBufferSource();
 	tracks[i].source.buffer = tracks[i].buffer;
-	tracks[i].source.connect(tracks[i].analyser);
+	tracks[i].source.connect(i ? tracks[i].analyser : gainNode);
 	tracks[i].source.start(audioContext.currentTime + tracks[i].when - t);
 	var dt = audioContext.currentTime - vars.time;
 	if (dt != vars.dt) log(i + " play lag ", dt - t);
@@ -221,6 +237,8 @@ function playBuffer(i, t=0) {
 
 navigator.mediaDevices.getUserMedia({audio:true})
 .then(function(stream) {
+	vars.stream = stream;	// TODO refactor so this isn't necessary
+
 	if (window.MediaRecorder) {
 		var reader;
 		recorder = new MediaRecorder(stream);
