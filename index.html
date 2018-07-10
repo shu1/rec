@@ -11,7 +11,7 @@
 </style>
 </head>
 <body style="width:980px; margin:0; margin-left:auto; margin-right:auto">
-	<canvas id="canvas" width="980" height="560" style="background:linear-gradient(blue,red)"></canvas>
+	<canvas id="canvas" width="980" height="560" style="background:linear-gradient(blue,#f04)"></canvas>
 	<table>
 		<tr><td><audio id="audio0" controls></audio></td><td><button id="button0" disabled>load</button></td><td></td></tr>
 		<tr><td><audio id="audio1" controls></audio></td><td><button id="button1">rec</button></td><td id="cell1"></td></tr>
@@ -20,8 +20,10 @@
 		<tr><td><audio id="audio4" controls></audio></td><td><button id="button4">rec</button></td><td id="cell4"></td></tr>
 	</table>
 	<div id="logDiv">
-		Press the <span style="font-weight:bold">play</span> button on the right to start loop. Don't touch audio controls on the left.<br>
-		Press a <span style="font-weight:bold">rec</span> button to select track. It will turn <span style="color:blue">blue</span> when selected. On the next loop, it will turn <span style="color:red">red</span> and record the track from the mic.<br>
+		Click anywhere on the canvas to <span style="font-weight:bold">play</span>. The water surface shows the audio waveform.<br>
+		Click on a <span style="font-weight:bold">fish</span>, it will turn <span style="color:orange">orange</span> when selected. On the next loop, a white waveform will appear for the sound from the mic, the fish will eat the sound. From the next loop the fish will play back the sound.<br>
+		Click the area above the water (black area) to <span style="font-weight:bold">stop</span> after loop ends.<br>
+		The audio controls under the canvas are for debugging, don't touch.<br>
 		Works best on Chrome for PC or Android. iOS as of 11.4 hiccups at start and end of recording.
 	</div>
 </body>
