@@ -65,7 +65,7 @@ window.onload = function() {
 	}
 
 	var request = new XMLHttpRequest();
-	request.open("get", new Audio().canPlayType('audio/ogg')?g.ogg:g.m4a, true);
+	request.open("get", new Audio().canPlayType('audio/ogg')?assets.ogg:assets.m4a, true);
 	request.responseType = "arraybuffer";
 	request.onload = function() {
 		tracks[0].button.innerHTML = "play";
