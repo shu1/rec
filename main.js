@@ -4,6 +4,9 @@
 var canvas, audioContext, analyser, gainNode, recorder, tracks=[];
 var colors = ["orange", "fuchsia", "yellow", "aqua", "lime"];
 var vars = {
+	fpsCount:0,
+	fpsTime:0,
+	fpsText:"",
 	fftSize:512,
 	audio:1,
 	gain:1,
@@ -165,6 +168,15 @@ function draw(time) {
 		context2d.ellipse(x, y, rx, ry, 0, 0, 2 * Math.PI);
 		context2d.fill();
 	}
+
+	vars.fpsCount++;
+	if (time - vars.fpsTime > 984) {
+		vars.fpsText = vars.fpsCount + "fps";
+		vars.fpsTime = time;
+		vars.fpsCount = 0;
+	}
+	context2d.fillStyle = "white";
+	context2d.fillText(vars.fpsText, 1, 10);
 
 	requestAnimationFrame(draw);
 }
