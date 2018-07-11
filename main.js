@@ -312,26 +312,24 @@ navigator.mediaDevices.getUserMedia({audio:true})
 		if (!vars.audio) {
 			reader = new FileReader();
 			reader.onload = function() {
-				decode(reader.result);
+				audioContext.decodeAudioData(reader.result, decode);
 			}
 		}
 	} else {
 		recorder = new Recorder({encoderPath:"waveWorker.min.js"});
 		recorder.ondataavailable = function(typedArray) {
 			tracks[vars.rec].cell.innerHTML = "<a href='" + URL.createObjectURL(new Blob([typedArray], {type:'audio/wav'})) + "' download='track" + vars.rec + ".wav'>download<a/>";
-			decode(typedArray.buffer);
+			audioContext.decodeAudioData(typedArray.buffer, decode);
 		}
 	}
 
-	function decode(data) {
-		audioContext.decodeAudioData(data, function(buffer) {
-			tracks[vars.rec].buffer = buffer;
-			vars.dt = audioContext.currentTime - vars.time;
-			playBuffer(vars.rec, vars.dt);
-			log(vars.rec + " data lag ", vars.dt);
-			tracks[vars.rec].button.style.background = "";
-			vars.rec = 0;
-		});
+	function decode(buffer) {
+		tracks[vars.rec].buffer = buffer;
+		vars.dt = audioContext.currentTime - vars.time;
+		playBuffer(vars.rec, vars.dt);
+		log(vars.rec + " data lag ", vars.dt);
+		tracks[vars.rec].button.style.background = "";
+		vars.rec = 0;
 	}
 })
 .catch(function(e) {
