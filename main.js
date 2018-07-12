@@ -101,7 +101,7 @@ window.onload = function() {
 }
 
 function rec(i) {
-	if (recorder.state == "inactive") {
+	if (!vars.recording) {
 		if (vars.rec) tracks[vars.rec].button.style.background = "";
 		if (vars.rec != i) {
 			vars.rec = i;
@@ -139,7 +139,7 @@ function draw(time) {
 		var y = vars.dy * i;
 		var data = tracks[i].data;
 
-		if (i == vars.rec && recorder.state == "recording") {
+		if (vars.recording && i == vars.rec) {
 			tracks[0].analyser.getByteTimeDomainData(data);
 			context2d.moveTo(x + r, y);
 			var dx = (x + r) / data.length;
@@ -197,6 +197,12 @@ function initAudio(data) {
 	var source = audioContext.createMediaStreamSource(vars.stream);
 	source.connect(tracks[0].analyser);
 
+	if (!window.MediaRecorder) recorder = new Recorder(source);
+/*		recorder.ondataavailable = function(typedArray) {
+			tracks[vars.rec].cell.innerHTML = "<a href='" + URL.createObjectURL(new Blob([typedArray], {type:'audio/wav'})) + "' download='track" + vars.rec + ".wav'>download<a/>";
+			audioContext.decodeAudioData(typedArray.buffer, decode);
+		}
+*/
 	for (var i=1;i<=4;++i) {
 		tracks[i].analyser = audioContext.createAnalyser();
 		tracks[i].analyser.fftSize = vars.fftSize;
@@ -258,19 +264,36 @@ function play() {
 		} else {
 			vars.time = audioContext.currentTime;
 			if (vars.rec) {
-				if (recorder.state == "inactive") {
-					gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-					recorder.start();
-					tracks[vars.rec].when = vars.dt = audioContext.currentTime - vars.time;
-					log(vars.rec + " recb lag ", vars.dt);
-					tracks[vars.rec].button.style.background = "red";
-				}
-				else if (recorder.state == "recording") {
+				if (vars.recording) {
 					recorder.stop();
+					vars.recording = false;
 					gainNode.gain.setValueAtTime(vars.gain, audioContext.currentTime);
 					vars.dt = audioContext.currentTime - vars.time;
 					log(vars.rec + " rece lag ", vars.dt);
-					if (window.MediaRecorder) tracks[vars.rec].when += vars.dt;
+					if (window.MediaRecorder) {
+						tracks[vars.rec].when += vars.dt;
+					}
+/*					else if (vars.audio) {
+						tracks[vars.rec].when += vars.dt;
+						recorder.exportWAV(dataAvailable);
+						recorder.clear();
+					}
+*/					else {
+						recorder.getBuffer(function(buffers) {
+							var buffer = audioContext.createBuffer(2, buffers[0].length, audioContext.sampleRate);
+							buffer.getChannelData(0).set(buffers[0]);
+							buffer.getChannelData(1).set(buffers[1]);
+							decode(buffer);
+							recorder.clear();
+						});
+					}
+				} else {
+					gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+					recorder.start();
+					vars.recording = true;
+					tracks[vars.rec].when = vars.dt = audioContext.currentTime - vars.time;
+					log(vars.rec + " recb lag ", vars.dt);
+					tracks[vars.rec].button.style.background = "red";
 				}
 			}
 			play();
@@ -287,6 +310,26 @@ function playBuffer(i, t=0) {
 	if (dt != vars.dt) log(i + " play lag ", dt - t);
 }
 
+function dataAvailable(data) {
+	tracks[vars.rec].audio.src = URL.createObjectURL(data);
+	vars.dt = audioContext.currentTime - vars.time;
+	tracks[vars.rec].audio.currentTime = vars.dt + vars.lag + tracks[vars.rec].when;
+	tracks[vars.rec].audio.play();
+	log(vars.rec + " data lag ", vars.dt);
+	tracks[vars.rec].button.style.background = "";
+	tracks[vars.rec].cell.innerHTML = "<a href='" + tracks[vars.rec].audio.src + "' download>download<a/>";
+	vars.rec = 0;
+}
+
+function decode(buffer) {
+	tracks[vars.rec].buffer = buffer;
+	vars.dt = audioContext.currentTime - vars.time;
+	playBuffer(vars.rec, vars.dt);
+	log(vars.rec + " data lag ", vars.dt);
+	tracks[vars.rec].button.style.background = "";
+	vars.rec = 0;
+}
+
 navigator.mediaDevices.getUserMedia({audio:true})
 .then(function(stream) {
 	vars.stream = stream;	// TODO refactor so this isn't necessary
@@ -296,14 +339,7 @@ navigator.mediaDevices.getUserMedia({audio:true})
 		recorder = new MediaRecorder(stream);
 		recorder.ondataavailable = function(e) {
 			if (vars.audio) {
-				tracks[vars.rec].audio.src = URL.createObjectURL(e.data);
-				vars.dt = audioContext.currentTime - vars.time;
-				tracks[vars.rec].audio.currentTime = vars.dt + vars.lag + tracks[vars.rec].when;
-				tracks[vars.rec].audio.play();
-				log(vars.rec + " data lag ", vars.dt);
-				tracks[vars.rec].button.style.background = "";
-				tracks[vars.rec].cell.innerHTML = "<a href='" + tracks[vars.rec].audio.src + "' download>download<a/>";
-				vars.rec = 0;
+				dataAvailable(e.data);
 			} else {
 				reader.readAsArrayBuffer(e.data);
 			}
@@ -315,21 +351,6 @@ navigator.mediaDevices.getUserMedia({audio:true})
 				audioContext.decodeAudioData(reader.result, decode);
 			}
 		}
-	} else {
-		recorder = new Recorder({encoderPath:"waveWorker.min.js"});
-		recorder.ondataavailable = function(typedArray) {
-			tracks[vars.rec].cell.innerHTML = "<a href='" + URL.createObjectURL(new Blob([typedArray], {type:'audio/wav'})) + "' download='track" + vars.rec + ".wav'>download<a/>";
-			audioContext.decodeAudioData(typedArray.buffer, decode);
-		}
-	}
-
-	function decode(buffer) {
-		tracks[vars.rec].buffer = buffer;
-		vars.dt = audioContext.currentTime - vars.time;
-		playBuffer(vars.rec, vars.dt);
-		log(vars.rec + " data lag ", vars.dt);
-		tracks[vars.rec].button.style.background = "";
-		vars.rec = 0;
 	}
 })
 .catch(function(e) {
