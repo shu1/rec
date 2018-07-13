@@ -34,6 +34,7 @@ window.onload = function() {
 	}
 
 	tracks[0] = {};
+	tracks[0].when = 0;
 	tracks[0].button = document.getElementById("button0");
 	tracks[0].button.onclick = function() {
 		if (audioContext) {
@@ -176,7 +177,7 @@ function draw(time) {
 		vars.fpsCount = 0;
 	}
 	context2d.fillStyle = "white";
-	context2d.fillText(vars.fpsText, 1, 10);
+	context2d.fillText(vars.fpsText + (vars.stop ? " stop" : ""), 1, 10);
 
 	requestAnimationFrame(draw);
 }
@@ -226,13 +227,13 @@ function initAudio(data) {
 }
 
 function stop() {
-	if (tracks[0].when) {
-		tracks[0].when = 0;
+	if (vars.stop) {
+		vars.stop = false;
 		tracks[0].button.style.background = "";
 	}
 	else if (tracks[0].button.innerHTML == "stop") {
 		tracks[0].button.style.background = "blue";
-		tracks[0].when = 1;
+		vars.stop = true;
 	}
 	else if (tracks[0].buffer) {
 		vars.time = audioContext.currentTime;
@@ -242,7 +243,7 @@ function stop() {
 }
 
 function play() {
-	tracks[0].when = 0;
+	vars.stop = false;
 	playBuffer(0);
 	for (var i=1;i<=4;++i) {
 		if (tracks[i].buffer) {
@@ -258,7 +259,8 @@ function play() {
 	vars.dt = 0;
 
 	tracks[0].source.onended = function() {
-		if (tracks[0].when) {
+		if (vars.stop) {
+			vars.stop = false;
 			tracks[0].button.style.background = "";
 			tracks[0].button.innerHTML = "play";
 		} else {
