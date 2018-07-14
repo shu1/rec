@@ -35,7 +35,7 @@ window.onload = function() {
 	vars.audio = window.MediaRecorder;
 
 	tracks[0] = {};
-	tracks[0].when = 0;
+	tracks[0].offset = 0;
 	tracks[0].button = document.getElementById("button0");
 	tracks[0].button.onclick = function() {
 		if (audioContext) {
@@ -51,7 +51,7 @@ window.onload = function() {
 
 	function initTrack(i) {
 		tracks[i] = {};
-		tracks[i].when = 0;
+		tracks[i].offset = 0;
 		tracks[i].cell = document.getElementById("cell"+i);
 		tracks[i].button = document.getElementById("button"+i);
 		tracks[i].button.onclick = function() {
@@ -273,7 +273,7 @@ function play() {
 					gainNode.gain.setValueAtTime(vars.gain, audioContext.currentTime);
 					vars.dt = audioContext.currentTime - vars.time;
 					log(vars.rec + " rece lag ", vars.dt);
-					tracks[vars.rec].when += vars.dt;
+					tracks[vars.rec].offset += vars.dt;
 					if (!window.MediaRecorder) {
 //						recorder.exportWAV(dataAvailable);
 //						recorder.clear();
@@ -289,7 +289,7 @@ function play() {
 					gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
 					recorder.start();
 					vars.recording = true;
-					tracks[vars.rec].when = vars.dt = audioContext.currentTime - vars.time;
+					tracks[vars.rec].offset = vars.dt = audioContext.currentTime - vars.time;
 					log(vars.rec + " recb lag ", vars.dt);
 					tracks[vars.rec].button.style.background = "red";
 				}
@@ -311,7 +311,7 @@ function playBuffer(i, t=0) {
 function dataAvailable(data) {
 	tracks[vars.rec].audio.src = URL.createObjectURL(data);
 	vars.dt = audioContext.currentTime - vars.time;
-	tracks[vars.rec].audio.currentTime = vars.dt + vars.lag + tracks[vars.rec].when;
+	tracks[vars.rec].audio.currentTime = vars.lag + vars.dt + tracks[vars.rec].offset;
 	tracks[vars.rec].audio.play();
 	log(vars.rec + " data lag ", vars.dt);
 	tracks[vars.rec].button.style.background = "";
@@ -322,7 +322,7 @@ function dataAvailable(data) {
 function decode(buffer) {
 	tracks[vars.rec].buffer = buffer;
 	vars.dt = audioContext.currentTime - vars.time;
-	playBuffer(vars.rec, vars.dt + tracks[vars.rec].when);
+	playBuffer(vars.rec, vars.dt + tracks[vars.rec].offset);
 	log(vars.rec + " data lag ", vars.dt);
 	tracks[vars.rec].button.style.background = "";
 	vars.rec = 0;
