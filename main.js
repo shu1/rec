@@ -322,7 +322,7 @@ function dataAvailable(data) {
 function decode(buffer) {
 	tracks[vars.rec].buffer = buffer;
 	vars.dt = audioContext.currentTime - vars.time;
-	playBuffer(vars.rec, vars.dt);
+	playBuffer(vars.rec, vars.dt + tracks[vars.rec].when);
 	log(vars.rec + " data lag ", vars.dt);
 	tracks[vars.rec].button.style.background = "";
 	vars.rec = 0;
