@@ -8,7 +8,6 @@ var vars = {
 	fpsTime:0,
 	fpsText:"",
 	fftSize:512,
-	audio:1,
 	gain:1,
 	lag:0.1
 }
@@ -32,6 +31,8 @@ window.onload = function() {
 			log("gain=", vars.gain);
 		}
 	}
+
+	vars.audio = window.MediaRecorder;
 
 	tracks[0] = {};
 	tracks[0].when = 0;
@@ -148,7 +149,7 @@ function draw(time) {
 				context2d.lineTo(dx * j, y + (data[j]-128)/5);
 			}
 		}
-		else if (tracks[i].buffer || tracks[i].audio.src) {
+		else if (tracks[i].buffer || tracks[i].audio && tracks[i].audio.src) {
 			tracks[i].analyser.getByteTimeDomainData(data);
 			context2d.moveTo(x + r, y);
 			var dx = r * 2 / data.length;
@@ -272,15 +273,10 @@ function play() {
 					gainNode.gain.setValueAtTime(vars.gain, audioContext.currentTime);
 					vars.dt = audioContext.currentTime - vars.time;
 					log(vars.rec + " rece lag ", vars.dt);
-					if (window.MediaRecorder) {
-						tracks[vars.rec].when += vars.dt;
-					}
-/*					else if (vars.audio) {
-						tracks[vars.rec].when += vars.dt;
-						recorder.exportWAV(dataAvailable);
-						recorder.clear();
-					}
-*/					else {
+					tracks[vars.rec].when += vars.dt;
+					if (!window.MediaRecorder) {
+//						recorder.exportWAV(dataAvailable);
+//						recorder.clear();
 						recorder.getBuffer(function(buffers) {
 							var buffer = audioContext.createBuffer(2, buffers[0].length, audioContext.sampleRate);
 							buffer.getChannelData(0).set(buffers[0]);
@@ -307,7 +303,7 @@ function playBuffer(i, t=0) {
 	tracks[i].source = audioContext.createBufferSource();
 	tracks[i].source.buffer = tracks[i].buffer;
 	tracks[i].source.connect(i ? tracks[i].analyser : gainNode);
-	tracks[i].source.start(audioContext.currentTime + tracks[i].when - t);
+	tracks[i].source.start(0, t + (i?vars.lag:0));
 	var dt = audioContext.currentTime - vars.time;
 	if (dt != vars.dt) log(i + " play lag ", dt - t);
 }
