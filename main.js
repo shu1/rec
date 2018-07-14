@@ -13,7 +13,7 @@ var vars = {
 }
 
 window.onload = function() {
-	vars.audio = window.MediaRecorder ? true : false;
+	vars.audio = window.MediaRecorder?true:false;
 
 	var param = location.search.slice(1).split("&");
 	if (param && param[0]) {
@@ -43,15 +43,14 @@ window.onload = function() {
 		tracks[i].offset = 0;
 		tracks[i].cell = document.getElementById("cell"+i);
 		tracks[i].button = document.getElementById("button"+i);
-		tracks[i].button.onclick = i ?
-		function() {
-			rec(i);
-		}
-		:
-		function() {
-			if (audioContext) {
+		tracks[i].button.onclick = function() {
+			if (i) {
+				rec(i);
+			}
+			else if (audioContext) {
 				stop();
-			} else {
+			}
+			else {
 				initAudio(request.response);
 			}
 		}
@@ -315,17 +314,6 @@ function decode(buffer) {
 	vars.rec = 0;
 }
 
-function dataAvailable(data) {
-	tracks[vars.rec].audio.src = URL.createObjectURL(data);
-	vars.dt = audioContext.currentTime - vars.time;
-	tracks[vars.rec].audio.currentTime = vars.lag + vars.dt + tracks[vars.rec].offset;
-	tracks[vars.rec].audio.play();
-	log(vars.rec + " data lag ", vars.dt);
-	tracks[vars.rec].button.style.background = "";
-	tracks[vars.rec].cell.innerHTML = "<a href='" + tracks[vars.rec].audio.src + "' download>download<a/>";
-	vars.rec = 0;
-}
-
 navigator.mediaDevices.getUserMedia({audio:true})
 .then(function(stream) {
 	vars.stream = stream;	// TODO refactor so this isn't necessary
@@ -335,7 +323,14 @@ navigator.mediaDevices.getUserMedia({audio:true})
 		recorder = new MediaRecorder(stream);
 		recorder.ondataavailable = function(e) {
 			if (vars.audio) {
-				dataAvailable(e.data);
+				tracks[vars.rec].audio.src = URL.createObjectURL(e.data);
+				vars.dt = audioContext.currentTime - vars.time;
+				tracks[vars.rec].audio.currentTime = vars.lag + vars.dt + tracks[vars.rec].offset;
+				tracks[vars.rec].audio.play();
+				log(vars.rec + " data lag ", vars.dt);
+				tracks[vars.rec].button.style.background = "";
+				tracks[vars.rec].cell.innerHTML = "<a href='" + tracks[vars.rec].audio.src + "' download>download<a/>";
+				vars.rec = 0;
 			} else {
 				reader.readAsArrayBuffer(e.data);
 			}
@@ -357,10 +352,10 @@ function log(e, t) {
 	if (t != 0) {
 		if (vars.log) {
 			logDiv.innerHTML += "<br>" + e;
-			if(t) logDiv.innerHTML += t.toFixed(3);
+			if (t) logDiv.innerHTML += t.toFixed(3);
 		} else {
 			logDiv.innerHTML = e;
-			if(t) logDiv.innerHTML += t.toFixed(3);
+			if (t) logDiv.innerHTML += t.toFixed(3);
 			vars.log = 1;
 		}
 	}
