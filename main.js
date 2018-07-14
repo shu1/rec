@@ -187,11 +187,7 @@ function initAudio(data) {
 	source.connect(tracks[0].analyser);
 
 	if (!window.MediaRecorder) recorder = new Recorder(source);
-/*		recorder.ondataavailable = function(typedArray) {
-			tracks[vars.rec].cell.innerHTML = "<a href='" + URL.createObjectURL(new Blob([typedArray], {type:'audio/wav'})) + "' download='track" + vars.rec + ".wav'>download<a/>";
-			audioContext.decodeAudioData(typedArray.buffer, decode);
-		}
-*/
+
 	for (var i=1;i<=4;++i) {
 		tracks[i].analyser = audioContext.createAnalyser();
 		tracks[i].analyser.fftSize = vars.fftSize;
@@ -273,16 +269,19 @@ function play() {
 					vars.dt = audioContext.currentTime - vars.time;
 					log(vars.rec + " rece lag ", vars.dt);
 					tracks[vars.rec].offset += vars.dt;
+
 					if (!window.MediaRecorder) {
-//						recorder.exportWAV(dataAvailable);
-//						recorder.clear();
+						var i = vars.rec;
 						recorder.getBuffer(function(buffers) {
 							var buffer = audioContext.createBuffer(2, buffers[0].length, audioContext.sampleRate);
 							buffer.getChannelData(0).set(buffers[0]);
 							buffer.getChannelData(1).set(buffers[1]);
 							decode(buffer);
-							recorder.clear();
 						});
+						recorder.exportWAV(function(blob) {
+							tracks[i].cell.innerHTML = "<a href='" + URL.createObjectURL(blob) + "' download='track" + i + ".wav'>download<a/>";
+						});
+						recorder.clear();
 					}
 				} else {
 					gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
