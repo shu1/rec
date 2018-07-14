@@ -13,6 +13,8 @@ var vars = {
 }
 
 window.onload = function() {
+	vars.audio = window.MediaRecorder ? true : false;
+
 	var param = location.search.slice(1).split("&");
 	if (param && param[0]) {
 		var params = {}
@@ -32,20 +34,7 @@ window.onload = function() {
 		}
 	}
 
-	vars.audio = window.MediaRecorder;
-
-	tracks[0] = {};
-	tracks[0].offset = 0;
-	tracks[0].button = document.getElementById("button0");
-	tracks[0].button.onclick = function() {
-		if (audioContext) {
-			stop();
-		} else {
-			initAudio(request.response);
-		}
-	}
-
-	for (var i=1;i<=4;++i) {
+	for (var i=0;i<=4;++i) {
 		initTrack(i);
 	}
 
@@ -54,9 +43,19 @@ window.onload = function() {
 		tracks[i].offset = 0;
 		tracks[i].cell = document.getElementById("cell"+i);
 		tracks[i].button = document.getElementById("button"+i);
-		tracks[i].button.onclick = function() {
+		tracks[i].button.onclick = i ?
+		function() {
 			rec(i);
 		}
+		:
+		function() {
+			if (audioContext) {
+				stop();
+			} else {
+				initAudio(request.response);
+			}
+		}
+
 		if (vars.audio) tracks[i].audio = document.getElementById("audio"+i);
 	}
 
@@ -98,18 +97,6 @@ window.onload = function() {
 		}
 		else if (request.response) {
 			initAudio(request.response);
-		}
-	}
-}
-
-function rec(i) {
-	if (!vars.recording) {
-		if (vars.rec) tracks[vars.rec].button.style.background = "";
-		if (vars.rec != i) {
-			vars.rec = i;
-			tracks[i].button.style.background = "blue";
-		} else {
-			vars.rec = 0;
 		}
 	}
 }
@@ -227,6 +214,18 @@ function initAudio(data) {
 	});
 }
 
+function rec(i) {
+	if (!vars.recording) {
+		if (vars.rec) tracks[vars.rec].button.style.background = "";
+		if (vars.rec != i) {
+			vars.rec = i;
+			tracks[i].button.style.background = "blue";
+		} else {
+			vars.rec = 0;
+		}
+	}
+}
+
 function stop() {
 	if (vars.stop) {
 		vars.stop = false;
@@ -308,6 +307,15 @@ function playBuffer(i, t=0) {
 	if (dt != vars.dt) log(i + " play lag ", dt - t);
 }
 
+function decode(buffer) {
+	tracks[vars.rec].buffer = buffer;
+	vars.dt = audioContext.currentTime - vars.time;
+	playBuffer(vars.rec, vars.dt + tracks[vars.rec].offset);
+	log(vars.rec + " data lag ", vars.dt);
+	tracks[vars.rec].button.style.background = "";
+	vars.rec = 0;
+}
+
 function dataAvailable(data) {
 	tracks[vars.rec].audio.src = URL.createObjectURL(data);
 	vars.dt = audioContext.currentTime - vars.time;
@@ -316,15 +324,6 @@ function dataAvailable(data) {
 	log(vars.rec + " data lag ", vars.dt);
 	tracks[vars.rec].button.style.background = "";
 	tracks[vars.rec].cell.innerHTML = "<a href='" + tracks[vars.rec].audio.src + "' download>download<a/>";
-	vars.rec = 0;
-}
-
-function decode(buffer) {
-	tracks[vars.rec].buffer = buffer;
-	vars.dt = audioContext.currentTime - vars.time;
-	playBuffer(vars.rec, vars.dt + tracks[vars.rec].offset);
-	log(vars.rec + " data lag ", vars.dt);
-	tracks[vars.rec].button.style.background = "";
 	vars.rec = 0;
 }
 
@@ -352,7 +351,7 @@ navigator.mediaDevices.getUserMedia({audio:true})
 	}
 })
 .catch(function(e) {
-	console.log(e);
+	log("Microphone " + e);
 });
 
 function log(e, t) {
