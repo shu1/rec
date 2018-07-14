@@ -124,7 +124,7 @@ function draw(time) {
 
 	context2d.beginPath();
 	for (var i=1;i<=4;++i) {
-		var y = vars.dy * i;
+		var y = vars.dy * (i - 0.5) + 64;
 		var data = tracks[i].data;
 
 		if (vars.recording && i == vars.rec) {
@@ -147,7 +147,7 @@ function draw(time) {
 	context2d.stroke();
 
 	for (var i=1;i<=4;++i) {
-		var y = vars.dy * i;
+		var y = vars.dy * (i - 0.5) + 64;
 		var gradient = context2d.createRadialGradient(x - rx/3, y, 0, x, y, rx);
 		gradient.addColorStop(0, "rgba(255,255,255,0)");
 		gradient.addColorStop(1, i == vars.rec ? colors[0] : colors[i]);
