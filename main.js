@@ -50,22 +50,33 @@ window.onload = function() {
 			else if (audioContext) {
 				stop();
 			}
-			else {
+			else if (request && request.response) {
 				initAudio(request.response);
+			}
+			else if (tracks[0].audio && tracks[0].audio.src) {
+				initAudio();
 			}
 		}
 
 		if (vars.audio) tracks[i].audio = document.getElementById("audio"+i);
 	}
 
-	var request = new XMLHttpRequest();
-	request.open("get", new Audio().canPlayType('audio/ogg')?assets.ogg:assets.m4a, true);
-	request.responseType = "arraybuffer";
-	request.onload = function() {
+	var request, source = new Audio().canPlayType('audio/ogg')?assets.ogg:assets.m4a;
+	if (false) {	// for use when bgm is not buffer
+		tracks[0].audio.src = source;
+		loadAudio();
+	} else {
+		request = new XMLHttpRequest();
+		request.open("get", source, true);
+		request.responseType = "arraybuffer";
+		request.onload = loadAudio;
+		request.send();
+	}
+
+	function loadAudio() {
 		tracks[0].button.innerHTML = "play";
 		tracks[0].button.disabled = false;
 	}
-	request.send();
 
 	canvas = document.getElementById("canvas");
 	vars.dy = (canvas.height - 64)/4;
@@ -94,8 +105,11 @@ window.onload = function() {
 				stop();
 			}
 		}
-		else if (request.response) {
+		else if (request && request.response) {
 			initAudio(request.response);
+		}
+		else if (tracks[0].audio && tracks[0].audio.src) {
+			initAudio();
 		}
 	}
 }
@@ -117,7 +131,7 @@ function draw(time) {
 	context2d.lineTo(0,0);
 	context2d.fill();
 
-	var x = ((vars.time - audioContext.currentTime) / tracks[0].buffer.duration + 1) * canvas.width;
+	var x = ((vars.time - audioContext.currentTime) / (tracks[0].buffer?tracks[0].buffer.duration:tracks[0].audio.duration) + 1) * canvas.width;
 	var r = 64;
 	var rx = r+8;
 	var ry = r-12;
@@ -193,20 +207,29 @@ function initAudio(data) {
 		tracks[i].analyser.connect(gainNode);
 		tracks[i].data = new Uint8Array(tracks[i].analyser.frequencyBinCount);
 
-		if (vars.audio) {
+		if (tracks[i].audio) {
 			var source = audioContext.createMediaElementSource(tracks[i].audio);
 			source.connect(tracks[i].analyser);
 		}
 	}
 
-	audioContext.decodeAudioData(data, function(buffer) {
-		tracks[0].buffer = buffer;
+	if (data) {
+		audioContext.decodeAudioData(data, function(buffer) {
+			tracks[0].buffer = buffer;
+			initPlay();
+		});
+	} else {
+		var source = audioContext.createMediaElementSource(tracks[0].audio);
+		source.connect(gainNode);
+		initPlay();
+	}
+
+	function initPlay() {
 		vars.time = audioContext.currentTime;
 		play();
 		tracks[0].button.innerHTML = "stop";
-
 		requestAnimationFrame(draw);
-	});
+	}
 }
 
 function rec(i) {
@@ -239,8 +262,7 @@ function stop() {
 
 function play() {
 	vars.stop = false;
-	playBuffer(0);
-	for (var i=1;i<=4;++i) {
+	for (var i=0;i<=4;++i) {
 		if (tracks[i].buffer) {
 			playBuffer(i);
 		}
@@ -253,46 +275,52 @@ function play() {
 	}
 	vars.dt = 0;
 
-	tracks[0].source.onended = function() {
-		if (vars.stop) {
-			vars.stop = false;
-			tracks[0].button.style.background = "";
-			tracks[0].button.innerHTML = "play";
-		} else {
-			vars.time = audioContext.currentTime;
-			if (vars.rec) {
-				if (vars.recording) {
-					recorder.stop();
-					vars.recording = false;
-					gainNode.gain.setValueAtTime(vars.gain, audioContext.currentTime);
-					vars.dt = audioContext.currentTime - vars.time;
-					log(vars.rec + " rece lag ", vars.dt);
-					tracks[vars.rec].offset += vars.dt;
+	if (tracks[0].source) {
+		tracks[0].source.onended = ended;
+	} else {
+		tracks[0].audio.onended = ended;
+	}
+}
 
-					if (!window.MediaRecorder) {
-						var i = vars.rec;
-						recorder.getBuffer(function(buffers) {
-							var buffer = audioContext.createBuffer(2, buffers[0].length, audioContext.sampleRate);
-							buffer.getChannelData(0).set(buffers[0]);
-							buffer.getChannelData(1).set(buffers[1]);
-							decode(buffer);
-						});
-						recorder.exportWAV(function(blob) {
-							tracks[i].cell.innerHTML = "<a href='" + URL.createObjectURL(blob) + "' download='track" + i + ".wav'>download<a/>";
-						});
-						recorder.clear();
-					}
-				} else {
-					gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-					recorder.start();
-					vars.recording = true;
-					tracks[vars.rec].offset = vars.dt = audioContext.currentTime - vars.time;
-					log(vars.rec + " recb lag ", vars.dt);
-					tracks[vars.rec].button.style.background = "red";
+function ended() {
+	if (vars.stop) {
+		vars.stop = false;
+		tracks[0].button.style.background = "";
+		tracks[0].button.innerHTML = "play";
+	} else {
+		vars.time = audioContext.currentTime;
+		if (vars.rec) {
+			if (vars.recording) {
+				recorder.stop();
+				vars.recording = false;
+				gainNode.gain.setValueAtTime(vars.gain, audioContext.currentTime);
+				vars.dt = audioContext.currentTime - vars.time;
+				log(vars.rec + " rece lag ", vars.dt);
+				tracks[vars.rec].offset += vars.dt;
+
+				if (!window.MediaRecorder) {
+					var i = vars.rec;
+					recorder.getBuffer(function(buffers) {
+						var buffer = audioContext.createBuffer(2, buffers[0].length, audioContext.sampleRate);
+						buffer.getChannelData(0).set(buffers[0]);
+						buffer.getChannelData(1).set(buffers[1]);
+						decode(buffer);
+					});
+					recorder.exportWAV(function(blob) {
+						tracks[i].cell.innerHTML = "<a href='" + URL.createObjectURL(blob) + "' download='track" + i + ".wav'>download<a/>";
+					});
+					recorder.clear();
 				}
+			} else {
+				gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+				recorder.start();
+				vars.recording = true;
+				tracks[vars.rec].offset = vars.dt = audioContext.currentTime - vars.time;
+				log(vars.rec + " recb lag ", vars.dt);
+				tracks[vars.rec].button.style.background = "red";
 			}
-			play();
 		}
+		play();
 	}
 }
 
@@ -316,10 +344,9 @@ function decode(buffer) {
 
 navigator.mediaDevices.getUserMedia({audio:true})
 .then(function(stream) {
-	vars.stream = stream;	// TODO refactor so this isn't necessary
+	vars.stream = stream;
 
 	if (window.MediaRecorder) {
-		var reader;
 		recorder = new MediaRecorder(stream);
 		recorder.ondataavailable = function(e) {
 			if (vars.audio) {
@@ -336,6 +363,7 @@ navigator.mediaDevices.getUserMedia({audio:true})
 			}
 		}
 
+		var reader;
 		if (!vars.audio) {
 			reader = new FileReader();
 			reader.onload = function() {
