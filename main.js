@@ -253,7 +253,7 @@ function stop() {
 		tracks[0].button.style.background = "blue";
 		vars.stop = true;
 	}
-	else if (tracks[0].buffer) {
+	else if (tracks[0].buffer || tracks[0].audio && tracks[0].audio.src) {
 		vars.time = audioContext.currentTime;
 		play();
 		tracks[0].button.innerHTML = "stop";
@@ -268,7 +268,7 @@ function play() {
 		}
 		else if (tracks[i].audio && tracks[i].audio.src) {
 			var dt = audioContext.currentTime - vars.time;
-			tracks[i].audio.currentTime = dt + vars.lag;
+			tracks[i].audio.currentTime = dt + (i?vars.lag:0);
 			tracks[i].audio.play();
 			if (dt != vars.dt) log(i + " play lag ", dt);
 		}
