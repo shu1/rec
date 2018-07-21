@@ -143,7 +143,7 @@ function draw(time) {
 		var data = tracks[i].data;
 
 		if (vars.recording && i == vars.rec) {
-			tracks[0].analyser.getByteTimeDomainData(data);
+			tracks[5].analyser.getByteTimeDomainData(data);
 			context2d.moveTo(x + r, y);
 			var dx = (x + r) / data.length;
 			for (var j = data.length-1; j >= 0; --j) {
