@@ -1,8 +1,8 @@
 // Shuichi Aizawa 2018
 "use strict";
 
-var canvas, audioContext, analyser, gainNode, recorder, tracks=[];
-var colors = ["orange", "fuchsia", "yellow", "aqua", "lime"];
+var canvas, audioContext, recorder, tracks=[];
+var styles = ["black", "fuchsia", "yellow", "aqua", "lime", "orange"];
 var vars = {
 	fpsCount:0,
 	fpsTime:0,
@@ -37,6 +37,7 @@ window.onload = function() {
 	for (var i=0;i<=4;++i) {
 		initTrack(i);
 	}
+	tracks[5] = {};
 
 	function initTrack(i) {
 		tracks[i] = {};
@@ -118,11 +119,11 @@ function draw(time) {
 	var context2d = canvas.getContext("2d");
 	context2d.clearRect(0, 0, canvas.width, canvas.height);
 
-	var data = tracks[0].data;
+	var data = vars.data;
 	var offset = (data.length - canvas.width)/2;
-	analyser.getByteTimeDomainData(data);
+	vars.analyser.getByteTimeDomainData(data);
 
-	context2d.fillStyle = "black";
+	context2d.fillStyle = styles[0];
 	context2d.beginPath();
 	context2d.moveTo(canvas.width, 0);
 	for (var i = canvas.width; i >= 0; --i) {
@@ -164,7 +165,7 @@ function draw(time) {
 		var y = vars.dy * (i - 0.5) + 64;
 		var gradient = context2d.createRadialGradient(x - rx/3, y, 0, x, y, rx);
 		gradient.addColorStop(0, "rgba(255,255,255,0)");
-		gradient.addColorStop(1, i == vars.rec ? colors[0] : colors[i]);
+		gradient.addColorStop(1, i == vars.rec ? styles[5] : styles[i]);
 		context2d.fillStyle = gradient;
 		context2d.beginPath();
 		context2d.ellipse(x, y, rx, ry, 0, 0, 2 * Math.PI);
@@ -186,32 +187,32 @@ function draw(time) {
 function initAudio(data) {
 	audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-	analyser = audioContext.createAnalyser();
-	analyser.connect(audioContext.destination);
-	tracks[0].data = new Uint8Array(analyser.frequencyBinCount);
+	vars.analyser = audioContext.createAnalyser();
+	vars.analyser.connect(audioContext.destination);
+	vars.data = new Uint8Array(vars.analyser.frequencyBinCount);
 
-	gainNode = audioContext.createGain();
-	gainNode.connect(analyser);
-	gainNode.gain.setValueAtTime(vars.gain, audioContext.currentTime);
+	vars.gainNode = audioContext.createGain();
+	vars.gainNode.connect(vars.analyser);
+	vars.gainNode.gain.setValueAtTime(vars.gain, audioContext.currentTime);
 
-	tracks[0].analyser = audioContext.createAnalyser();
-	tracks[0].analyser.fftSize = vars.fftSize;
-	var source = audioContext.createMediaStreamSource(vars.stream);
-	source.connect(tracks[0].analyser);
-
-	if (!window.MediaRecorder) recorder = new Recorder(source);
-
-	for (var i=1;i<=4;++i) {
+	for (var i=0;i<=4;++i) {
 		tracks[i].analyser = audioContext.createAnalyser();
 		tracks[i].analyser.fftSize = vars.fftSize;
-		tracks[i].analyser.connect(gainNode);
+		tracks[i].analyser.connect(vars.gainNode);
 		tracks[i].data = new Uint8Array(tracks[i].analyser.frequencyBinCount);
 
-		if (tracks[i].audio) {
+		if ((i || !data) && tracks[i].audio) {
 			var source = audioContext.createMediaElementSource(tracks[i].audio);
 			source.connect(tracks[i].analyser);
 		}
 	}
+
+	tracks[5].analyser = audioContext.createAnalyser();
+	tracks[5].analyser.fftSize = vars.fftSize;
+	var source = audioContext.createMediaStreamSource(vars.stream);
+	source.connect(tracks[5].analyser);
+
+	if (!window.MediaRecorder) recorder = new Recorder(source);
 
 	if (data) {
 		audioContext.decodeAudioData(data, function(buffer) {
@@ -220,7 +221,7 @@ function initAudio(data) {
 		});
 	} else {
 		var source = audioContext.createMediaElementSource(tracks[0].audio);
-		source.connect(gainNode);
+		source.connect(vars.gainNode);
 		initPlay();
 	}
 
@@ -293,7 +294,7 @@ function ended() {
 			if (vars.recording) {
 				recorder.stop();
 				vars.recording = false;
-				gainNode.gain.setValueAtTime(vars.gain, audioContext.currentTime);
+				vars.gainNode.gain.setValueAtTime(vars.gain, audioContext.currentTime);
 				vars.dt = audioContext.currentTime - vars.time;
 				log(vars.rec + " rece lag ", vars.dt);
 				tracks[vars.rec].offset += vars.dt;
@@ -312,7 +313,7 @@ function ended() {
 					recorder.clear();
 				}
 			} else {
-				gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+				vars.gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
 				recorder.start();
 				vars.recording = true;
 				tracks[vars.rec].offset = vars.dt = audioContext.currentTime - vars.time;
@@ -327,7 +328,7 @@ function ended() {
 function playBuffer(i, t=0) {
 	tracks[i].source = audioContext.createBufferSource();
 	tracks[i].source.buffer = tracks[i].buffer;
-	tracks[i].source.connect(i ? tracks[i].analyser : gainNode);
+	tracks[i].source.connect(tracks[i].analyser);
 	tracks[i].source.start(0, t + (i?vars.lag:0));
 	var dt = audioContext.currentTime - vars.time;
 	if (dt != vars.dt) log(i + " play lag ", dt - t);
