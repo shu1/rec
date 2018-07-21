@@ -1,8 +1,16 @@
 // Shuichi Aizawa 2018
 "use strict";
 
-var canvas, audioContext, recorder, tracks=[];
+var canvas, audioContext, recorder, visualizer, tracks=[];
 var styles = ["black", "fuchsia", "yellow", "aqua", "lime", "orange"];
+var colors = [
+	[  0,  0,  0],
+	[  1,  0,  1],
+	[  1,  1,  0],
+	[  0,  1,  1],
+	[  0,  1,  0],
+	[  1,0.5,  0],
+]
 var vars = {
 	fpsCount:0,
 	fpsTime:0,
@@ -87,6 +95,16 @@ window.onload = function() {
 	context2d.lineWidth = 2;
 	context2d.strokeStyle = "white";
 
+	visualizer = new Visualizer(context2d, document.getElementById("gl"));
+	visualizer.setIndex(4);
+
+	var element = document.getElementById("visualizer");
+	if (element) {
+		element.onchange = function(event) {
+			visualizer.setIndex(event.target.value);
+		}
+	}
+
 	canvas.onmousedown = function(e) {
 		if (audioContext) {
 			if (e.touches) {
@@ -118,6 +136,12 @@ window.onload = function() {
 function draw(time) {
 	var context2d = canvas.getContext("2d");
 	context2d.clearRect(0, 0, canvas.width, canvas.height);
+
+	for (var i=4;i>=0;--i) {
+		if (visualizer.index() > 0 && (tracks[i].buffer || tracks[i].audio && tracks[i].audio.src)) {
+			visualizer.draw(tracks[i].analyser, (visualizer.index() > 2) ? colors[i] : styles[i], i / tracks.length);
+		}
+	}
 
 	var data = vars.data;
 	var offset = (data.length - canvas.width)/2;

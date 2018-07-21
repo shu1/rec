@@ -11,7 +11,16 @@
 </style>
 </head>
 <body style="width:960px; margin:0; margin-left:auto; margin-right:auto">
-	<canvas id="canvas" width="960" height="540" style="background:linear-gradient(blue,#f04)"></canvas>
+	<canvas id="gl" width="960" height="540" style="position:absolute; z-index:-1; background:linear-gradient(blue,#f04)"></canvas>
+	<canvas id="canvas" width="960" height="540"></canvas>
+	<select id="visualizer">
+		<option value="0">Visualizer:</option>
+		<option value="1">Spectrum</option>
+		<option value="2">Bellagio</option>
+		<option value="3">Bellagio GL</option>
+		<option value="4" selected>Mirage GL</option>
+		<option value="5">Aurora GL</option>
+	</select>
 	<table>
 		<tr><td><audio id="audio0" controls></audio></td><td><button id="button0" disabled>load</button></td><td id="cell0"></td></tr>
 		<tr><td><audio id="audio1" controls></audio></td><td><button id="button1">rec</button></td><td id="cell1"></td></tr>
@@ -27,6 +36,46 @@
 	</div>
 </body>
 <script src="recorder.js"></script>
+<script src="twgl.min.js"></script>
+<script src="visualizer.js"></script>
 <script src="assets.js"></script>
 <script src="main.js"></script>
+<script type="x-shader/x-vertex" id="vs1">
+attribute vec4 position;
+varying float alpha;
+uniform float offset;
+void main() {
+	alpha = (position.y == -1.0) ? 0.0 : 1.0;
+	gl_Position = vec4(position.x + offset, position.yzw);
+}
+</script>
+<script type="x-shader/x-fragment" id="fs1">
+precision mediump float;
+uniform vec3 color;
+varying float alpha;
+void main() {
+	gl_FragColor = vec4(color, alpha);
+}
+</script>
+<script type="x-shader/x-vertex" id="vs2">
+attribute vec4 position;
+void main() {
+	gl_Position = position;
+}
+</script>
+<script type="x-shader/x-fragment" id="fs2">
+precision mediump float;
+uniform vec2 resolution;
+uniform float cutoff;
+uniform sampler2D texture;
+uniform bool inverse;
+uniform vec3 color;
+void main() {
+	float x = (gl_FragCoord.x / resolution.x) * cutoff;
+	float a = texture2D(texture, vec2(x, 0)).a;
+	float y = (gl_FragCoord.y / resolution.y);
+	float alpha = inverse ? 1.5-exp2(y-a) : exp2(y-a)-1.0;
+	gl_FragColor = vec4(color, alpha);
+}
+</script>
 </html>
