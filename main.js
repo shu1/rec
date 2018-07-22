@@ -151,9 +151,11 @@ function draw(time) {
 	var context2d = canvas.getContext("2d");
 	context2d.clearRect(0, 0, canvas.width, canvas.height);
 
+	var visualized;
 	for (var i=4;i>=0;--i) {
-		if (visualizer.index() > 0 && (tracks[i].buffer || tracks[i].audio && tracks[i].audio.src)) {
-			visualizer.draw(tracks[i].analyser, (visualizer.index() > 2) ? colors[i] : styles[i], i / tracks.length);
+		if (visualizer.index() > 0 && (i || !visualized || visualizer.index() < 4) && (tracks[i].buffer || tracks[i].audio && tracks[i].audio.src)) {
+			visualizer.draw(tracks[i].analyser, (visualizer.index() > 2) ? colors[i] : styles[i], i / 5);
+			visualized = true;
 		}
 	}
 
