@@ -4,7 +4,7 @@
 var canvas, audioContext, recorder, visualizer, tracks=[];
 var styles = ["black", "fuchsia", "yellow", "aqua", "lime", "orange"];
 var colors = [
-	[  0,  0,  0],
+	[  1,  0,  0],
 	[  1,  0,  1],
 	[  1,  1,  0],
 	[  0,  1,  1],
@@ -12,12 +12,14 @@ var colors = [
 	[  1,0.5,  0],
 ]
 var vars = {
+	background:"linear-gradient(blue,#f04)",
 	fpsCount:0,
 	fpsTime:0,
 	fpsText:"",
 	fftSize:512,
 	gain:1,
-	lag:0.1
+	lag:0.1,
+	vis:4
 }
 
 window.onload = function() {
@@ -95,13 +97,17 @@ window.onload = function() {
 	context2d.lineWidth = 2;
 	context2d.strokeStyle = "white";
 
-	visualizer = new Visualizer(context2d, document.getElementById("gl"));
-	visualizer.setIndex(4);
+	visualizer = new Visualizer(context2d, gl);
+	visualizer.setIndex(vars.vis);
+	setBackground();
 
 	var element = document.getElementById("visualizer");
 	if (element) {
+		element.selectedIndex = vars.vis;
 		element.onchange = function(event) {
-			visualizer.setIndex(event.target.value);
+			vars.vis = event.target.value;
+			visualizer.setIndex(vars.vis);
+			setBackground(vars.vis);
 		}
 	}
 
@@ -130,6 +136,14 @@ window.onload = function() {
 		else if (tracks[0].audio && tracks[0].audio.src) {
 			initAudio();
 		}
+	}
+}
+
+function setBackground(i) {
+	if (i >= 3) {
+		gl.style.background = "blue";
+	} else {
+		gl.style.background = vars.background;
 	}
 }
 
@@ -244,6 +258,7 @@ function initAudio(data) {
 			initPlay();
 		});
 	} else {
+		setBackground(vars.vis);
 		initPlay();
 	}
 
@@ -251,6 +266,7 @@ function initAudio(data) {
 		vars.time = audioContext.currentTime;
 		play();
 		tracks[0].button.innerHTML = "stop";
+		setBackground(vars.vis);
 		requestAnimationFrame(draw);
 	}
 }
