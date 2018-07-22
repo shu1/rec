@@ -244,8 +244,6 @@ function initAudio(data) {
 			initPlay();
 		});
 	} else {
-		var source = audioContext.createMediaElementSource(tracks[0].audio);
-		source.connect(vars.gainNode);
 		initPlay();
 	}
 
