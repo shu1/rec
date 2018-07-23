@@ -9,7 +9,7 @@ var colors = [
 	[  1,  1,  0],
 	[  0,  1,  1],
 	[  0,  1,  0],
-	[  1,0.5,  0],
+	[  1,0.5,  0]
 ]
 var vars = {
 	background:"linear-gradient(blue,#f04)",
@@ -17,8 +17,8 @@ var vars = {
 	fpsTime:0,
 	fpsText:"",
 	fftSize:512,
-	gain:1,
 	lag:0.1,
+	gain:1,
 	vis:4
 }
 
@@ -32,12 +32,10 @@ window.onload = function() {
 			var pair = param[i].split("=");
 			params[pair[0]] = pair[1];
 		}
-
 		if (params["lag"]) {
 			vars.lag = parseFloat(params["lag"]);
 			log("lag=", vars.lag);
 		}
-
 		if (params["gain"]) {
 			vars.gain = parseFloat(params["gain"]);
 			log("gain=", vars.gain);
