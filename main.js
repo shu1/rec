@@ -19,6 +19,7 @@ var vars = {
 	fftSize:512,
 	lag:0.1,
 	gain:1,
+	bgm:3,
 	vis:4
 }
 
@@ -46,6 +47,7 @@ window.onload = function() {
 		initTrack(i);
 	}
 	tracks[5] = {};
+	tracks[0].button.disabled = true;
 
 	function initTrack(i) {
 		tracks[i] = {};
@@ -59,8 +61,8 @@ window.onload = function() {
 			else if (audioContext) {
 				stop();
 			}
-			else if (request && request.response) {
-				initAudio(request.response);
+			else if (vars.request && vars.request.response) {
+				initAudio(vars.request.response);
 			}
 			else if (tracks[0].audio && tracks[0].audio.src) {
 				initAudio();
@@ -70,21 +72,13 @@ window.onload = function() {
 		if (vars.audio) tracks[i].audio = document.getElementById("audio"+i);
 	}
 
-	var request, source = new Audio().canPlayType('audio/ogg')?assets.ogg:assets.m4a;
-	if (false) {	// for use when bgm is not buffer
-		tracks[0].audio.src = source;
-		loadAudio();
-	} else {
-		request = new XMLHttpRequest();
-		request.open("get", source, true);
-		request.responseType = "arraybuffer";
-		request.onload = loadAudio;
-		request.send();
-	}
-
-	function loadAudio() {
-		tracks[0].button.innerHTML = "play";
-		tracks[0].button.disabled = false;
+	loadAudio(vars.bgm);
+	if (bgm) {
+		bgm.selectedIndex = vars.bgm;
+		bgm.onchange = function(event) {
+			vars.bgm = event.target.value;
+			loadAudio(vars.bgm);
+		}
 	}
 
 	canvas = document.getElementById("canvas");
@@ -128,8 +122,8 @@ window.onload = function() {
 				stop();
 			}
 		}
-		else if (request && request.response) {
-			initAudio(request.response);
+		else if (vars.request && vars.request.response) {
+			initAudio(vars.request.response);
 		}
 		else if (tracks[0].audio && tracks[0].audio.src) {
 			initAudio();
@@ -272,6 +266,32 @@ function initAudio(data) {
 	}
 }
 
+function loadAudio(i) {
+	var type = new Audio().canPlayType('audio/ogg')?1:0;
+	if (false) {	// for use when bgm is not buffer
+		tracks[0].audio.src = assets[i][type];
+		load();
+	} else {
+		vars.request = new XMLHttpRequest();
+		vars.request.open("get", assets[i][type], true);
+		vars.request.responseType = "arraybuffer";
+		vars.request.onload = load;
+		vars.request.send();
+	}
+
+	function load() {
+		if (!audioContext) {
+			tracks[0].button.innerHTML = "play";
+			tracks[0].button.disabled = false;
+		}
+		else if (vars.request.response) {
+			audioContext.decodeAudioData(vars.request.response, function(buffer) {
+				vars.buffer = buffer;
+			});
+		}
+	}
+}
+
 function rec(i) {
 	if (!vars.recording) {
 		if (vars.rec) tracks[vars.rec].button.style.background = "";
@@ -329,7 +349,11 @@ function ended() {
 		tracks[0].button.innerHTML = "play";
 	} else {
 		vars.time = audioContext.currentTime;
-		if (vars.rec) {
+		if (vars.buffer) {
+			tracks[0].buffer = vars.buffer;
+			vars.buffer = null;
+		}
+		else if (vars.rec) {
 			if (vars.recording) {
 				recorder.stop();
 				vars.recording = false;
