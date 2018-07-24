@@ -442,13 +442,11 @@ navigator.mediaDevices.getUserMedia({audio:true})
 
 function log(e, t) {
 	if (t != 0) {
-		if (vars.log) {
-			logDiv.innerHTML += "<br>" + e;
-			if (t) logDiv.innerHTML += t.toFixed(3);
-		} else {
-			logDiv.innerHTML = e;
-			if (t) logDiv.innerHTML += t.toFixed(3);
-			vars.log = 1;
+		if (!vars.log) {
+			vars.log = true;
+			logDiv.innerHTML = "";
 		}
+		logDiv.innerHTML += "<br>" + e;
+		if (t) logDiv.innerHTML += t.toFixed(3);
 	}
 }
