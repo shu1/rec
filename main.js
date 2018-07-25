@@ -2,7 +2,7 @@
 "use strict";
 
 var canvas, audioContext, recorder, visualizer, tracks=[];
-var styles = ["black", "fuchsia", "yellow", "aqua", "lime", "orange"];
+var styles = ["white", "fuchsia", "yellow", "aqua", "lime", "orange"];
 var colors = [
 	[  1,  0,  0],
 	[  1,  0,  1],
@@ -21,7 +21,7 @@ var vars = {
 	lag:0.1,
 	gain:1,
 	bgm:3,
-	vis:4
+	vis:1
 }
 
 window.onload = function() {
@@ -43,12 +43,6 @@ window.onload = function() {
 			log("gain=", vars.gain);
 		}
 	}
-
-	for (var i=0;i<=4;++i) {
-		initTrack(i);
-	}
-	tracks[5] = {};
-	tracks[0].button.disabled = true;
 
 	function initTrack(i) {
 		tracks[i] = {};
@@ -73,7 +67,14 @@ window.onload = function() {
 		if (vars.audio) tracks[i].audio = document.getElementById("audio"+i);
 	}
 
+	for (var i=0;i<=4;++i) {
+		initTrack(i);
+	}
+	tracks[5] = {};
+	tracks[0].button.disabled = true;
+
 	loadAudio(vars.bgm);
+
 	if (bgm) {
 		bgm.selectedIndex = vars.bgm;
 		bgm.onchange = function(event) {
@@ -191,7 +192,7 @@ function draw(time) {
 	var offset = (data.length - canvas.width)/2;
 	vars.analyser.getByteTimeDomainData(data);
 
-	context2d.fillStyle = styles[0];
+	context2d.fillStyle = "black";
 	context2d.beginPath();
 	context2d.moveTo(canvas.width, 0);
 	for (var i = canvas.width; i >= 0; --i) {
