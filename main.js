@@ -85,6 +85,7 @@ window.onload = function() {
 
 	if (file) {
 		file.onchange = function(event) {
+			var audio = new Audio();
 			var files = event.target.files || event.dataTransfer.files;
 			if (files.length==1) {
 				loadFile(0, files[0]);
@@ -96,8 +97,9 @@ window.onload = function() {
 			event.preventDefault();
 
 			function loadFile(i, file) {
-				if (file.type.indexOf("audio") >= 0 || file.type.indexOf("video") >= 0) {
-					if (tracks[i].buffer) {
+				if (audio.canPlayType(file.type)) {
+					log(file.name);
+					if (!vars.audio || tracks[i].buffer) {
 						var reader = new FileReader();
 						reader.onload = function(event) {
 							audioContext.decodeAudioData(event.target.result, function(buffer) {
@@ -107,7 +109,6 @@ window.onload = function() {
 						reader.readAsArrayBuffer(file);
 					}
 					else if (tracks[i].audio) {
-						log(file.name);
 						tracks[i].audio.src = URL.createObjectURL(file);
 					}
 				} else {
