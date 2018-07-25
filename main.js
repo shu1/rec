@@ -17,6 +17,7 @@ var vars = {
 	fpsTime:0,
 	fpsText:"",
 	fftSize:512,
+	buffers:[],
 	lag:0.1,
 	gain:1,
 	bgm:3,
@@ -78,6 +79,40 @@ window.onload = function() {
 		bgm.onchange = function(event) {
 			vars.bgm = event.target.value;
 			loadAudio(vars.bgm);
+		}
+	}
+
+	if (file) {
+		file.onchange = function(event) {
+			var files = event.target.files || event.dataTransfer.files;
+			if (files.length==1) {
+				loadFile(0, files[0]);
+			} else {
+				for (var i=0; i<4 && i < files.length; ++i) {
+					loadFile(i+1, files[i]);
+				}
+			}
+			event.preventDefault();
+
+			function loadFile(i, file) {
+				if (file.type.indexOf("audio") >= 0 || file.type.indexOf("video") >= 0) {
+					if (tracks[i].buffer) {
+						var reader = new FileReader();
+						reader.onload = function(event) {
+							audioContext.decodeAudioData(event.target.result, function(buffer) {
+								vars.buffers[i] = buffer;
+							});
+						}
+						reader.readAsArrayBuffer(file);
+					}
+					else if (tracks[i].audio) {
+						log(file.name);
+						tracks[i].audio.src = URL.createObjectURL(file);
+					}
+				} else {
+					log("UNSUPPORTED FILE TYPE " + file.type);
+				}
+			}
 		}
 	}
 
@@ -286,7 +321,7 @@ function loadAudio(i) {
 		}
 		else if (vars.request.response) {
 			audioContext.decodeAudioData(vars.request.response, function(buffer) {
-				vars.buffer = buffer;
+				vars.buffers[0] = buffer;
 			});
 		}
 	}
@@ -343,17 +378,20 @@ function play() {
 }
 
 function ended() {
+	for (var i=0;i<=4;++i) {
+		if (vars.buffers[i]) {
+			tracks[i].buffer = vars.buffers[i];
+			vars.buffers[i] = null;
+		}
+	}
+
 	if (vars.stop) {
 		vars.stop = false;
 		tracks[0].button.style.background = "";
 		tracks[0].button.innerHTML = "play";
 	} else {
 		vars.time = audioContext.currentTime;
-		if (vars.buffer) {
-			tracks[0].buffer = vars.buffer;
-			vars.buffer = null;
-		}
-		else if (vars.rec) {
+		if (vars.rec) {
 			if (vars.recording) {
 				recorder.stop();
 				vars.recording = false;
