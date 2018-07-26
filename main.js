@@ -18,6 +18,7 @@ var vars = {
 	fpsText:"",
 	fftSize:512,
 	buffers:[],
+	files:[],
 	lag:0.1,
 	gain:1,
 	bgm:3,
@@ -85,7 +86,6 @@ window.onload = function() {
 
 	if (file) {
 		file.onchange = function(event) {
-			var audio = new Audio();
 			var files = event.target.files || event.dataTransfer.files;
 			if (files.length==1) {
 				loadFile(0, files[0]);
@@ -95,26 +95,6 @@ window.onload = function() {
 				}
 			}
 			event.preventDefault();
-
-			function loadFile(i, file) {
-				if (audio.canPlayType(file.type)) {
-					log(file.name);
-					if (!vars.audio || tracks[i].buffer) {
-						var reader = new FileReader();
-						reader.onload = function(event) {
-							audioContext.decodeAudioData(event.target.result, function(buffer) {
-								vars.buffers[i] = buffer;
-							});
-						}
-						reader.readAsArrayBuffer(file);
-					}
-					else if (tracks[i].audio) {
-						tracks[i].audio.src = URL.createObjectURL(file);
-					}
-				} else {
-					log("UNSUPPORTED FILE TYPE " + file.type);
-				}
-			}
 		}
 	}
 
@@ -254,6 +234,31 @@ function draw(time) {
 	requestAnimationFrame(draw);
 }
 
+function loadFile(i, file) {
+	if (new Audio().canPlayType(file.type)) {
+		if (!vars.audio || tracks[i].buffer) {
+			if (audioContext) {
+				log(file.name);
+				var reader = new FileReader();
+				reader.onload = function(event) {
+					audioContext.decodeAudioData(event.target.result, function(buffer) {
+						vars.buffers[i] = buffer;
+					});
+				}
+				reader.readAsArrayBuffer(file);
+			} else {
+				vars.files[i] = file;
+			}
+		}
+		else if (tracks[i].audio) {
+			log(file.name);
+			tracks[i].audio.src = URL.createObjectURL(file);
+		}
+	} else {
+		log("UNSUPPORTED FILE TYPE " + file.type);
+	}
+}
+
 function initAudio(data) {
 	audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -274,6 +279,11 @@ function initAudio(data) {
 		if ((i || !data) && tracks[i].audio) {
 			var source = audioContext.createMediaElementSource(tracks[i].audio);
 			source.connect(tracks[i].analyser);
+		}
+
+		if (vars.files[i]) {
+			loadFile(i, vars.files[i]);
+			vars.files[i] = null;
 		}
 	}
 
