@@ -105,6 +105,7 @@ window.onload = function() {
 	context2d.fillRect(0, 0, canvas.width, 64);
 	context2d.lineWidth = 2;
 	context2d.strokeStyle = "white";
+	context2d.font = "12px sans-serif";
 
 	visualizer = new Visualizer(context2d, gl);
 	visualizer.setIndex(vars.vis);
@@ -229,7 +230,7 @@ function draw(time) {
 		vars.fpsCount = 0;
 	}
 	context2d.fillStyle = "white";
-	context2d.fillText(vars.fpsText + (vars.stop ? " stop" : ""), 1, 10);
+	context2d.fillText(vars.fpsText + (vars.stop ? " stop" : ""), 1, 12);
 
 	requestAnimationFrame(draw);
 }

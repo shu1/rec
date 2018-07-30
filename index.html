@@ -7,10 +7,10 @@
 <meta name="viewport" content="user-scalable=no, width=960">
 <title>rec-rec</title>
 </head>
-<body style="width:960px; margin:0; margin-left:auto; margin-right:auto">
-	<canvas id="gl" width="960" height="540" style="position:absolute; z-index:-1"></canvas>
-	<canvas id="canvas" width="960" height="540"></canvas>
+<body style="width:960px; margin-left:auto; margin-right:auto; background:black; color:lightgray">
 	<center>
+		<canvas id="gl" width="960" height="540" style="position:absolute; z-index:-1"></canvas>
+		<canvas id="canvas" width="960" height="540"></canvas>
 		<select id="bgm">
 			<option value="0">Tracks:</option>
 			<option value="1">shubeat1</option>
@@ -36,10 +36,10 @@
 			<tr><td><audio id="audio4" controls></audio></td><td><button id="button4">rec</button></td><td id="cell4"></td></tr>
 		</table>
 	</td><td id="logDiv" style="vertical-align:top">
-		Click anywhere on the canvas to <span style="font-weight:bold">play</span>. The water surface shows the audio waveform.<br>
-		Click on a <span style="font-weight:bold">fish</span>, it will turn <span style="color:orange">orange</span> when selected. On the next loop, a white waveform will appear from the sound of the mic, the fish will eat the sound. From the next loop the fish will play back the sound.<br>
-		Click the area above the water (black area) to <span style="font-weight:bold">stop</span> at the end of the loop.<br>
-		Drum loops by <a href="https://twitter.com/gamedeventura" target=”_blank”>David Ventura</a>
+		Click anywhere on the canvas to <b>play</b>. The water surface shows the audio waveform.<br>
+		Click on one of the 4 <b>fish</b>, it will turn <span style="color:orange">orange</span> when selected. On the next loop, a white waveform will appear from the sound of the mic, the fish will eat the sound. From the next loop the fish will play back the sound.<br>
+		Click the area above the water (black area) to <b>stop</b> at the end of the loop.<br>
+		Drum loops by <a href="https://twitter.com/gamedeventura" target=”_blank”><b>David Ventura</b></a>
 	</td></tr></table>
 </body>
 <script src="recorder.js"></script>
