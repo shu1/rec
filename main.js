@@ -13,6 +13,7 @@ var colors = [
 ]
 var vars = {
 	background:"linear-gradient(blue,#f04)",
+	audioBgm:false,
 	fpsCount:0,
 	fpsTime:0,
 	fpsText:"",
@@ -26,7 +27,7 @@ var vars = {
 }
 
 window.onload = function() {
-	vars.audio = window.MediaRecorder?true:false;
+	vars.audioRec = window.MediaRecorder?true:false;
 
 	var param = location.search.slice(1).split("&");
 	if (param && param[0]) {
@@ -65,7 +66,7 @@ window.onload = function() {
 			}
 		}
 
-		if (vars.audio) tracks[i].audio = document.getElementById("audio"+i);
+		if (!i && vars.audioBgm || i && vars.audioRec) tracks[i].audio = document.getElementById("audio"+i);
 	}
 
 	for (var i=0;i<=4;++i) {
@@ -237,9 +238,12 @@ function draw(time) {
 
 function loadFile(i, file) {
 	if (new Audio().canPlayType(file.type)) {
-		if (!vars.audio || tracks[i].buffer) {
+		if (tracks[i].audio) {
+			log(i + " " + file.name);
+			tracks[i].audio.src = URL.createObjectURL(file);
+		} else {
 			if (audioContext) {
-				log(file.name);
+				log(i + " " + file.name);
 				var reader = new FileReader();
 				reader.onload = function(event) {
 					audioContext.decodeAudioData(event.target.result, function(buffer) {
@@ -250,10 +254,6 @@ function loadFile(i, file) {
 			} else {
 				vars.files[i] = file;
 			}
-		}
-		else if (tracks[i].audio) {
-			log(file.name);
-			tracks[i].audio.src = URL.createObjectURL(file);
 		}
 	} else {
 		log("UNSUPPORTED FILE TYPE " + file.type);
@@ -316,7 +316,7 @@ function initAudio(data) {
 
 function loadAudio(i) {
 	var type = new Audio().canPlayType('audio/ogg')?1:0;
-	if (false) {	// for use when bgm is not buffer
+	if (vars.audioBgm) {
 		tracks[0].audio.src = assets[i][type];
 		load();
 	} else {
@@ -332,7 +332,7 @@ function loadAudio(i) {
 			tracks[0].button.innerHTML = "play";
 			tracks[0].button.disabled = false;
 		}
-		else if (vars.request.response) {
+		else if (vars.request && vars.request.response) {
 			audioContext.decodeAudioData(vars.request.response, function(buffer) {
 				vars.buffers[0] = buffer;
 			});
@@ -464,7 +464,7 @@ navigator.mediaDevices.getUserMedia({audio:true})
 	if (window.MediaRecorder) {
 		recorder = new MediaRecorder(stream);
 		recorder.ondataavailable = function(e) {
-			if (vars.audio) {
+			if (vars.audioRec) {
 				tracks[vars.rec].audio.src = URL.createObjectURL(e.data);
 				vars.dt = audioContext.currentTime - vars.time;
 				tracks[vars.rec].audio.currentTime = vars.lag + vars.dt + tracks[vars.rec].offset;
@@ -479,7 +479,7 @@ navigator.mediaDevices.getUserMedia({audio:true})
 		}
 
 		var reader;
-		if (!vars.audio) {
+		if (!vars.audioRec) {
 			reader = new FileReader();
 			reader.onload = function() {
 				audioContext.decodeAudioData(reader.result, decode);
